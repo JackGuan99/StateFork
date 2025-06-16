@@ -42,19 +42,38 @@ while getopts "k:bmlfrnh" opt; do
     esac
 done
 
-if [ "$kernel_provided" = false ] || [ -z "$kname" ]; then
-    echo "Error: Kernel version suffix is required."
-    usage
-    exit 1
-fi
-
 # Report function for colored messages.
 report() {
     echo -e "\033[1;33mAKCS >> $1\033[0m"
 }
 
+# Function to prompt the user to run a command.
+run_step() {
+    local prompt="$1"
+    local cmd="$2"
+    if $confirm; then
+        read -rp "$prompt (y/n): " ans
+        if [[ "$ans" != "y" && "$ans" != "Y" ]]; then
+            report "Skipped: $cmd"
+            return
+        fi
+    fi
+    report "Running: $cmd"
+    eval "$cmd"
+}
+
 # Trap errors and print a message.
 trap 'echo "An error occurred. Exiting." >&2' ERR
+
+# Welcome message.
+report "Welcome to the Alex Kernel Configuration Script!"
+
+# Check if kernel suffix is provided.
+if [ "$kernel_provided" = false ] || [ -z "$kname" ]; then
+    report "Error: Kernel version suffix is required."
+    usage
+    exit 1
+fi
 
 # Display the current configuration.
 echo "Kernel Configuration Script"
@@ -111,10 +130,8 @@ report "Clearing system trusted keys..."
 scripts/config --set-str SYSTEM_TRUSTED_KEYS ""
 scripts/config --set-str SYSTEM_REVOCATION_KEYS ""
 
-
 # Optimize configuration by turning off unused modules.
-report "Optimizing configuration by turning off unused modules..."
-yes '' | make localmodconfig
+run_step "Optimizing configuration by turning off unused modules..." "yes '' | make localmodconfig"
 
 # Apply debugging options based on the configuration.
 if [ "$d_basic" -eq 1 ]; then
@@ -183,25 +200,14 @@ if [ "$d_criu" -eq 1 ]; then
     # Incremental dump features
     scripts/config --enable CONFIG_MEM_SOFT_DIRTY
     scripts/config --enable CONFIG_USERFAULTFD
+    # My personal choices for debugging
+    scripts/config --enable CONFIG_INET_TCP_DIAG
+    scripts/config --enable CONFIG_NETFILTER_XT_TARGET_MARK
+    scripts/config --enable CONFIG_NETFILTER_XT_MATCH_MARK
 fi
 
 report "Kernel configuration is complete!"
 echo ""
-
-# Function to prompt the user to run a command.
-run_step() {
-    local prompt="$1"
-    local cmd="$2"
-    if $confirm; then
-        read -rp "$prompt (y/n): " ans
-        if [[ "$ans" != "y" && "$ans" != "Y" ]]; then
-            report "Skipped: $cmd"
-            return
-        fi
-    fi
-    report "Running: $cmd"
-    eval "$cmd"
-}
 
 # Interactive execution of the next steps.
 run_step "Build the kernel using 'make -j\$(nproc)'?" "time make -j\$(nproc)"
