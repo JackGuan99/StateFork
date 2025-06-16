@@ -1,8 +1,17 @@
-from docker_env_manager import DockerContainerManager
+import argparse
 
-def main():
+from docker_env_manager import DockerContainerManager
+from criu_env_manager import CRIUEnvironmentManager
+
+def main(args):
     available_commands = ["snapshot", "restore <id>", "step", "tree", "stats", "history", "exit"]
-    manager = DockerContainerManager()
+
+    if args.command == "docker":
+        manager = DockerContainerManager()
+    elif args.command == "criu":
+        manager = CRIUEnvironmentManager()
+    else:
+        raise ValueError(f"Unsupported command method: {args.command}")
 
     print("StateFork Container Manager")
     print(f"Available commands: {', '.join(available_commands)}")
@@ -53,4 +62,8 @@ def main():
             print(f"Available commands: {', '.join(available_commands)}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Environment Manager Launcher")
+    parser.add_argument("--method", choices=["docker", "criu"], default="docker",
+                        help="Choose the environment manager backend")
+    args_ns = parser.parse_args()
+    main(args_ns)

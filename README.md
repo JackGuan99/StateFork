@@ -19,8 +19,11 @@
 │   ├── api_server.py
 │   └── kv_store.py
 ├── controller
+│   ├── base_env_manager.py
 │   ├── benchmark.py
-│   └── container_manager.py
+│   ├── criu_env_manager.py
+│   ├── docker_env_manager.py
+│   └── main.py
 └── requirements.txt
 ```
 
@@ -58,9 +61,16 @@ StateFork > _
 | exit	         | Clean up and exit the manager                      |
 
 ## 🔧 Requirements
-- Docker (installed and running)
 - Python 3.10+
 - FastAPI and Uvicorn (see `requirements.txt`)
+
+### Docker Method
+- Docker is installed and running.
+
+### CRIU Method
+- A Linux kernel compiled with CRIU support.
+    - You may use my universal AKCS helper `scripts/kconfig.sh` with the `-r` option to generate a compatible kernel config.
+- CRIU installed from https://launchpad.net/~criu/+archive/ubuntu/ppa or your system package manager.
 
 ## 📊 Benchmarking Support
 The tool logs and displays operation performance statistics such as:
