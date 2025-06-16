@@ -43,7 +43,7 @@ class DockerContainerManager(EnvironmentManager):
     def _core_create_env(self, snapshot_id: str) -> tuple[Optional[str], float]:
         image_name = self.snapshots.get(snapshot_id)
         if not image_name:
-            logger.error(f"Snapshot ID {snapshot_id} not found.")
+            logger.warning(f"Snapshot ID {snapshot_id} not found.")
             return None, 0.0
 
         # Stop & remove existing container if running

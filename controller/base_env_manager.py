@@ -126,7 +126,7 @@ class EnvironmentManager(ABC):
         Clean up any resources used by the environment manager.
         This should be called when the manager is no longer needed.
         """
-        logger.info("Cleaning up Docker environment...")
+        logger.info("Cleaning up environment...")
 
         # Core Cleanup
         self._core_cleanup()
