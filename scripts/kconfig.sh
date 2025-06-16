@@ -11,6 +11,7 @@ Options:
   -m                   Enable Memory Debugging (default: disabled)
   -l                   Enable Lock Debugging (default: disabled)
   -f                   Enable ftrace Debugging (default: disabled)
+  -r                   Enable CRIU support (default: disabled)
   -n                   No confirmation prompt (auto proceed)
   -h                   Show this help message and exit
 EOF
@@ -23,16 +24,18 @@ d_basic=0
 d_memory=0
 d_lock=0
 d_ftrace=0
+d_criu=0
 confirm=true
 
 # Parse command-line options.
-while getopts "k:bmlfnh" opt; do
+while getopts "k:bmlfrnh" opt; do
     case "$opt" in
         k) kname="$OPTARG"; kernel_provided=true ;;
         b) d_basic=1 ;;
         m) d_memory=1 ;;
         l) d_lock=1 ;;
         f) d_ftrace=1 ;;
+        r) d_criu=1 ;;
         n) confirm=false ;;
         h) usage; exit 0 ;;
         \?) usage; exit 1 ;;
@@ -61,6 +64,7 @@ echo "Basic Debugging      : $([ "$d_basic" -eq 1 ] && echo "Enabled" || echo "D
 echo "Memory Debugging     : $([ "$d_memory" -eq 1 ] && echo "Enabled" || echo "Disabled")"
 echo "Lock Debugging       : $([ "$d_lock" -eq 1 ] && echo "Enabled" || echo "Disabled")"
 echo "ftrace Debugging     : $([ "$d_ftrace" -eq 1 ] && echo "Enabled" || echo "Disabled")"
+echo "CRIU Support         : $([ "$d_criu" -eq 1 ] && echo "Enabled" || echo "Disabled")"
 echo ""
 
 if $confirm; then
@@ -78,7 +82,7 @@ repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
     echo "Not inside a git repository. Exiting." >&2
     exit 1
 }
-cd "$repo_root"
+cd "$repo_root" || exit 1
 report "Switched to repository root: $(pwd)"
 
 # Check that the linux directory exists.
@@ -87,7 +91,7 @@ if [ ! -d "linux" ]; then
     exit 1
 fi
 
-cd linux
+cd linux || exit 1
 report "Changed directory to: $(pwd)"
 
 # Clean previous configurations.
@@ -143,6 +147,42 @@ if [ "$d_ftrace" -eq 1 ]; then
     scripts/config --enable CONFIG_FUNCTION_GRAPH_TRACER
     scripts/config --enable CONFIG_STACK_TRACE
     scripts/config --enable CONFIG_DYNAMIC_FTRACE
+fi
+
+if [ "$d_criu" -eq 1 ]; then
+    report "Enabling CRIU Support..."
+    # Key configs, according to "https://criu.org/Linux_kernel"
+    scripts/config --enable CONFIG_EMBEDDED
+    scripts/config --enable CONFIG_EXPERT
+    scripts/config --enable CONFIG_CHECKPOINT_RESTORE
+    scripts/config --enable CONFIG_NAMESPACES
+    scripts/config --enable CONFIG_UTS_NS
+    scripts/config --enable CONFIG_IPC_NS
+    scripts/config --enable CONFIG_SYSVIPC_SYSCTL
+    scripts/config --enable CONFIG_PID_NS
+    scripts/config --enable CONFIG_NET_NS
+    scripts/config --enable CONFIG_FHANDLE
+    scripts/config --enable CONFIG_EVENTFD
+    scripts/config --enable CONFIG_EPOLL
+    scripts/config --enable CONFIG_UNIX_DIAG
+    scripts/config --enable CONFIG_INET_DIAG
+    scripts/config --enable CONFIG_INET_UDP_DIAG
+    scripts/config --enable CONFIG_PACKET_DIAG
+    scripts/config --enable CONFIG_NETLINK_DIAG
+    scripts/config --enable CONFIG_NETFILTER_XT_MARK
+    scripts/config --enable CONFIG_TUN
+    # Optional features for CRIU
+    scripts/config --enable CONFIG_INOTIFY_USER
+    scripts/config --enable CONFIG_FANOTIFY
+    scripts/config --enable CONFIG_MEMCG
+    scripts/config --enable CONFIG_CGROUP_DEVICE
+    scripts/config --enable CONFIG_MACVLAN
+    scripts/config --enable CONFIG_BRIDGE
+    scripts/config --enable CONFIG_BINFMT_MISC
+    scripts/config --enable CONFIG_IA32_EMULATION
+    # Incremental dump features
+    scripts/config --enable CONFIG_MEM_SOFT_DIRTY
+    scripts/config --enable CONFIG_USERFAULTFD
 fi
 
 report "Kernel configuration is complete!"
