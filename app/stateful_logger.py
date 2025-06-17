@@ -33,7 +33,7 @@ def main():
     while running:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] [PID {pid}] Counter: {counter}\n"
-        print(log_entry.strip())
+        # print(log_entry.strip())
         log_file.write(log_entry)
         log_file.flush()
 

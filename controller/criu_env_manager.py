@@ -53,7 +53,7 @@ class CRIUEnvironmentManager(EnvironmentManager):
                 "criu", "dump",
                 "-t", str(self.process.pid),
                 "--images-dir", snapshot_path,
-                "--tcp-established",
+                # "--tcp-established",
                 "--shell-job",
                 "--leave-running"
             ], check=True)
@@ -73,15 +73,16 @@ class CRIUEnvironmentManager(EnvironmentManager):
         # Terminate the existing FastAPI process
         if self.process:
             self.process.terminate()
-            self.process.wait()
+            # self.process.wait()
 
         start = time.time()
         try:
             self.process = subprocess.Popen([
                 "criu", "restore",
                 "--images-dir", snapshot_path,
-                "--tcp-established",
-                "--shell-job"
+                # "--tcp-established",
+                "--shell-job",
+                "--restore-detached"
             ])
             elapsed = time.time() - start
             return snapshot_id, elapsed
