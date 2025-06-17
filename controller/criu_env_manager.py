@@ -34,12 +34,13 @@ class CRIUEnvironmentManager(EnvironmentManager):
 
     @staticmethod
     def __start_app() -> subprocess.Popen:
-        return subprocess.Popen([
-            "uvicorn", "app.api_server:app",
-            "--host", "0.0.0.0",
-            "--port", "8000",
-            "--no-access-log"
-        ])
+        # return subprocess.Popen([
+        #     "uvicorn", "app.api_server:app",
+        #     "--host", "0.0.0.0",
+        #     "--port", "8000",
+        #     "--no-access-log"
+        # ])
+        return subprocess.Popen(["python3", "app/stateful_logger.py"])
 
     def _core_snapshot(self) -> tuple[Optional[str], float]:
         snapshot_id = str(uuid.uuid4())[:8]
