@@ -50,7 +50,13 @@ class CRIUEnvironmentManager(EnvironmentManager):
 
     # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!
     # TODO: Any more efficient way to kill the original process?
-    def __kill_original_process(self, soft_timeout: float = 0.1, hard_timeout: float = 0.1):
+    def __kill_original_process(self, force: bool = False, soft_timeout: float = 0.1, hard_timeout: float = 0.1):
+        if force:
+            proc = psutil.Process(self.app_pid)
+            proc.kill()
+            proc.wait(timeout=hard_timeout)
+            return
+
         try:
             proc = psutil.Process(self.app_pid)
             proc.send_signal(signal.SIGTERM)
@@ -94,7 +100,7 @@ class CRIUEnvironmentManager(EnvironmentManager):
             return None, 0.0
 
         # Terminate the existing APP process
-        self.__kill_original_process()
+        self.__kill_original_process(force=True, hard_timeout=0.01)
 
         start = time.time()
         try:
