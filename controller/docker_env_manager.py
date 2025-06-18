@@ -33,7 +33,7 @@ class DockerContainerManager(EnvironmentManager):
         image_name = f"snapshot_{snapshot_id}"
 
         start = time.time()
-        subprocess.run(["docker", "commit", self.container_name, image_name], check=True)
+        subprocess.run(["docker", "commit", self.container_name, image_name], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elapsed = time.time() - start
 
         self.snapshots[snapshot_id] = image_name
@@ -47,13 +47,14 @@ class DockerContainerManager(EnvironmentManager):
             return None, 0.0
 
         # Stop & remove existing container if running
-        subprocess.run(["docker", "rm", "-f", self.container_name], stderr=subprocess.DEVNULL)
+        subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         start = time.time()
         subprocess.run([
             "docker", "run", "-d", "--rm",
             "--name", self.container_name,
             "-p", "8000:8000",
+            "-v", "/tmp:/tmp",
             image_name
         ], check=True)
         elapsed = time.time() - start
@@ -68,8 +69,8 @@ class DockerContainerManager(EnvironmentManager):
         return result is not None, elapsed
 
     def _core_cleanup(self):
-        subprocess.run(["docker", "rm", "-f", self.container_name], stderr=subprocess.DEVNULL)
+        subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for snapshot_id in list(self.snapshots.keys()):
             image_name = self.snapshots[snapshot_id]
-            subprocess.run(["docker", "rmi", image_name], stderr=subprocess.DEVNULL)
+            subprocess.run(["docker", "rmi", image_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             del self.snapshots[snapshot_id]

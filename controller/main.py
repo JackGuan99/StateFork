@@ -17,7 +17,7 @@ def main(args):
     print(f"Available commands: {', '.join(available_commands)}")
 
     while True:
-        cmd = input("StateFork > ").strip()
+        cmd = input("\nStateFork > ").strip()
 
         if cmd == "snapshot":
             sid = manager.snapshot()
