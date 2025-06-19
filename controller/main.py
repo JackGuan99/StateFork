@@ -6,18 +6,18 @@ from criu_env_manager import CRIUEnvironmentManager
 def main(args):
     available_commands = ["snapshot", "restore <id>", "step", "tree", "stats", "history", "exit"]
 
-    if args.command == "docker":
+    if args.method == "docker":
         manager = DockerContainerManager()
-    elif args.command == "criu":
+    elif args.method == "criu":
         manager = CRIUEnvironmentManager()
     else:
-        raise ValueError(f"Unsupported command method: {args.command}")
+        raise ValueError(f"Unsupported command method: {args.method}")
 
     print("StateFork Container Manager")
     print(f"Available commands: {', '.join(available_commands)}")
 
     while True:
-        cmd = input("StateFork > ").strip()
+        cmd = input("\nStateFork > ").strip()
 
         if cmd == "snapshot":
             sid = manager.snapshot()

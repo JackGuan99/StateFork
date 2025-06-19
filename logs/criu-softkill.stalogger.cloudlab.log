@@ -1,0 +1,99 @@
+(.venv) alexxjk@node0:~/StateFork$ sudo python3 controller/main.py --method criu
+INFO:criu_env_manager:Starting initial APP...
+StateFork Container Manager
+Available commands: snapshot, restore <id>, step, tree, stats, history, exit
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 1858458f in 0.0313s
+Snapshot created: 1858458f
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: cae455c3 in 0.0300s
+Snapshot created: cae455c3
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 44aa46de in 0.0307s
+Snapshot created: 44aa46de
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: e01f8bd5 in 0.0301s
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Container created from snapshot e01f8bd5 in 0.0006s
+Stepped to new container with snapshot e01f8bd5
+
+StateFork > tree
+Snapshot Tree:
+ - 3fd271e9
+   - 1858458f
+     - cae455c3
+       - 44aa46de
+         - e01f8bd5 (current)
+
+StateFork > restore 3fd271e9
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Environment restored from snapshot 3fd271e9 in 0.1020s
+Restored to snapshot 3fd271e9
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: 7327ff62 in 0.0328s
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Container created from snapshot 7327ff62 in 0.0006s
+Stepped to new container with snapshot 7327ff62
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: a2cc0eee in 0.0323s
+Snapshot created: a2cc0eee
+
+StateFork > tree
+Snapshot Tree:
+ - 3fd271e9
+   - 1858458f
+     - cae455c3
+       - 44aa46de
+         - e01f8bd5
+   - 7327ff62 (current)
+     - a2cc0eee (last)
+
+StateFork > restore cae455c3
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Environment restored from snapshot cae455c3 in 0.1020s
+Restored to snapshot cae455c3
+
+StateFork > restore 3fd271e9
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Environment restored from snapshot 3fd271e9 in 0.1021s
+Restored to snapshot 3fd271e9
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: 43076c87 in 0.0331s
+WARNING:criu_env_manager:SIGTERM not responding within 0.1s, sending SIGKILL to PID 6391
+INFO:base_env_manager:Container created from snapshot 43076c87 in 0.0006s
+Stepped to new container with snapshot 43076c87
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: e2a6adbc in 0.0330s
+Snapshot created: e2a6adbc
+
+StateFork > history
+#1    [SNAPSHOT  ] -> 1858458f took 0.0313s
+#2    [SNAPSHOT  ] -> cae455c3 took 0.0300s
+#3    [SNAPSHOT  ] -> 44aa46de took 0.0307s
+#4    [SNAPSHOT  ] -> e01f8bd5 took 0.0301s
+#5    [CONTAINER ] -> e01f8bd5 took 0.0006s
+#6    [RESTORE   ] -> 3fd271e9 took 0.1020s
+#7    [SNAPSHOT  ] -> 7327ff62 took 0.0328s
+#8    [CONTAINER ] -> 7327ff62 took 0.0006s
+#9    [SNAPSHOT  ] -> a2cc0eee took 0.0323s
+#10   [RESTORE   ] -> cae455c3 took 0.1020s
+#11   [RESTORE   ] -> 3fd271e9 took 0.1021s
+#12   [SNAPSHOT  ] -> 43076c87 took 0.0331s
+#13   [CONTAINER ] -> 43076c87 took 0.0006s
+#14   [SNAPSHOT  ] -> e2a6adbc took 0.0330s
+
+StateFork > exit
+[SNAPSHOT  ] mean=0.031663s median=0.031814s min=0.030004s max=0.033091s
+[CONTAINER ] mean=0.000617s median=0.000631s min=0.000574s max=0.000646s
+[RESTORE   ] mean=0.102017s median=0.101999s min=0.101992s max=0.102061s
+Cleaning up resources...
+INFO:base_env_manager:Cleaning up environment...
+INFO:base_env_manager:Cleanup complete.

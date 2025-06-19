@@ -1,5 +1,7 @@
 import os
+import psutil
 import shutil
+import signal
 import subprocess
 import time
 import uuid
@@ -18,10 +20,14 @@ class CRIUEnvironmentManager(EnvironmentManager):
 
         os.makedirs(self.work_dir, exist_ok=True)
 
-        logger.info("Starting initial FastAPI app...")
+        logger.info("Starting initial APP...")
         self.process = self.__start_app()
         if self.process.poll() is not None:
-            raise RuntimeError("Failed to start the FastAPI app.")
+            if self.process.stderr:
+                logger.error("Process stderr output:")
+                print(self.process.stderr.read().decode())
+            raise RuntimeError("Failed to start the APP.")
+        self.app_pid = self.process.pid
 
         time.sleep(1)  # wait for app to initialize
         sid, _ = self._core_snapshot()
@@ -34,12 +40,36 @@ class CRIUEnvironmentManager(EnvironmentManager):
 
     @staticmethod
     def __start_app() -> subprocess.Popen:
-        return subprocess.Popen([
-            "uvicorn", "app.api_server:app",
-            "--host", "0.0.0.0",
-            "--port", "8000",
-            "--no-access-log"
-        ])
+        # return subprocess.Popen([
+        #     "uvicorn", "app.api_server:app",
+        #     "--host", "0.0.0.0",
+        #     "--port", "8000",
+        #     "--no-access-log"
+        # ])
+        return subprocess.Popen(["python3", "app/stateful_logger.py"], stderr=subprocess.PIPE)
+
+    # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!
+    # TODO: Any more efficient way to kill the original process?
+    def __kill_original_process(self, force: bool = False, soft_timeout: float = 0.1, hard_timeout: float = 0.1):
+        if force:
+            proc = psutil.Process(self.app_pid)
+            proc.kill()
+            proc.wait(timeout=hard_timeout)
+            return
+
+        try:
+            proc = psutil.Process(self.app_pid)
+            proc.send_signal(signal.SIGTERM)
+        except psutil.NoSuchProcess:
+            return
+
+        start_time = time.time()
+        while proc.is_running():
+            if time.time() - start_time > soft_timeout:
+                logger.warning(f"SIGTERM not responding within {soft_timeout}s, sending SIGKILL to PID {self.app_pid}")
+                proc.kill()
+                proc.wait(timeout=hard_timeout)
+                return
 
     def _core_snapshot(self) -> tuple[Optional[str], float]:
         snapshot_id = str(uuid.uuid4())[:8]
@@ -50,7 +80,7 @@ class CRIUEnvironmentManager(EnvironmentManager):
         try:
             subprocess.run([
                 "criu", "dump",
-                "-t", str(self.process.pid),
+                "-t", str(self.app_pid),
                 "--images-dir", snapshot_path,
                 "--tcp-established",
                 "--shell-job",
@@ -69,10 +99,8 @@ class CRIUEnvironmentManager(EnvironmentManager):
             logger.warning(f"Snapshot {snapshot_id} not found.")
             return None, 0.0
 
-        # Terminate the existing FastAPI process
-        if self.process:
-            self.process.terminate()
-            self.process.wait()
+        # Terminate the existing APP process
+        self.__kill_original_process(force=True, hard_timeout=0.01)
 
         start = time.time()
         try:
@@ -96,7 +124,5 @@ class CRIUEnvironmentManager(EnvironmentManager):
         return result is not None, elapsed
 
     def _core_cleanup(self):
-        if self.process:
-            self.process.terminate()
-            self.process.wait()
+        self.__kill_original_process(soft_timeout=2.0, hard_timeout=2.0)
         shutil.rmtree(self.work_dir, ignore_errors=True)
