@@ -16,6 +16,11 @@ class SnapshotNode:
 
 
 class EnvironmentManager(ABC):
+    """
+    The base class and interface for managing environment snapshots.
+
+    Applied the Template Method design pattern.
+    """
 
     def __init__(self):
         self.snapshots: Dict[str, str] = {}  # snapshot_id -> image_id
