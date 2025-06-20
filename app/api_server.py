@@ -28,29 +28,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# # Logging middleware to log requests and responses
-# rr_counter = 0
-#
-# @app.middleware("http")
-# async def log_requests(request, call_next):
-#     """
-#     Middleware to log incoming requests and their responses.
-#     """
-#     ip = request.client.host
-#     port = request.client.port
-#     method = request.method
-#     url = request.url.path
-#
-#     global rr_counter
-#     rr_counter += 1
-#     local_rr_counter = rr_counter
-#
-#     logger.info(f"[{local_rr_counter:3d}] Request\tFrom {ip}:{port} - {method} {url}")
-#     response = await call_next(request)
-#     logger.info(f"[{local_rr_counter:3d}] Response\tStatus: {response.status_code}")
-#
-#     return response
-
 """
 I deliberately make every endpoint use the GET method for simplicity and testability.
 """
