@@ -46,7 +46,8 @@ class CRIUEnvironmentManager(EnvironmentManager):
         #     "--port", "8000",
         #     "--no-access-log"
         # ])
-        return subprocess.Popen(["python3", "app/stateful_logger.py"], stderr=subprocess.PIPE)
+        # return subprocess.Popen(["python3", "app/stateful_logger.py"], stderr=subprocess.PIPE)
+        return subprocess.Popen(["./app/rdb"], stderr=subprocess.PIPE)
 
     # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!
     # TODO: Any more efficient way to kill the original process?

@@ -74,8 +74,8 @@ void log_metadata() {
 // Worker thread: insert large string values
 void update_db() {
     mt19937 rng(random_device{}());
-    uniform_int_distribution<int> key_dist(1, 100000000);
-    const size_t value_size = 256;
+    uniform_int_distribution<int> key_dist(1, 1000000000);
+    const size_t value_size = 2048; // 2 KB
 
     while (running) {
         int key = key_dist(rng);
@@ -85,7 +85,7 @@ void update_db() {
             lock_guard<mutex> lock(db_mutex);
             db[key] = value;
         }
-        this_thread::sleep_for(chrono::milliseconds(10));
+        this_thread::sleep_for(chrono::milliseconds(5));
     }
 }
 
