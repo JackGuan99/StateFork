@@ -40,13 +40,12 @@ class CRIUEnvironmentManager(EnvironmentManager):
 
     @staticmethod
     def __start_app() -> subprocess.Popen:
-        # return subprocess.Popen([
-        #     "uvicorn", "app.api_server:app",
-        #     "--host", "0.0.0.0",
-        #     "--port", "8000",
-        #     "--no-access-log"
-        # ])
-        return subprocess.Popen(["python3", "app/stateful_logger.py"], stderr=subprocess.PIPE)
+        return subprocess.Popen([
+            "uvicorn", "app.api_server:app",
+            "--host", "127.0.0.1",
+            "--port", "8000",
+            "--no-access-log"
+        ], stderr=subprocess.PIPE)
 
     # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!
     # TODO: Any more efficient way to kill the original process?

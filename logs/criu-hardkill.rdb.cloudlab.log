@@ -1,0 +1,94 @@
+(.venv) alexxjk@node0:~/StateFork$ sudo python3 controller/main.py --method criu
+INFO:criu_env_manager:Starting initial APP...
+PID: 41739 [Main = 140438504532736, Logger = 140438495299136, DB = 140438484813376]
+StateFork Container Manager
+Available commands: snapshot, restore <id>, step, tree, stats, history, exit
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 6a305aa3 in 0.0478s
+Snapshot created: 6a305aa3
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 07e598f0 in 0.1253s
+Snapshot created: 07e598f0
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 7297a780 in 0.1534s
+Snapshot created: 7297a780
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: dcaf83cf in 0.1769s
+INFO:base_env_manager:Container created from snapshot dcaf83cf in 0.0009s
+Stepped to new container with snapshot dcaf83cf
+
+StateFork > tree
+Snapshot Tree:
+ - cd0e00f8
+   - 6a305aa3
+     - 07e598f0
+       - 7297a780
+         - dcaf83cf (current)
+
+StateFork > restore cd0e00f8
+INFO:base_env_manager:Environment restored from snapshot cd0e00f8 in 0.0147s
+Restored to snapshot cd0e00f8
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: 8e5d29bd in 0.0396s
+INFO:base_env_manager:Container created from snapshot 8e5d29bd in 0.0007s
+Stepped to new container with snapshot 8e5d29bd
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 287d869e in 0.0677s
+Snapshot created: 287d869e
+
+StateFork > tree   
+Snapshot Tree:
+ - cd0e00f8
+   - 6a305aa3
+     - 07e598f0
+       - 7297a780
+         - dcaf83cf
+   - 8e5d29bd (current)
+     - 287d869e (last)
+
+StateFork > restore 07e598f0
+INFO:base_env_manager:Environment restored from snapshot 07e598f0 in 0.0048s
+Restored to snapshot 07e598f0
+
+StateFork > restore cd0e00f8
+INFO:base_env_manager:Environment restored from snapshot cd0e00f8 in 0.0082s
+Restored to snapshot cd0e00f8
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: 9825d05f in 0.0380s
+INFO:base_env_manager:Container created from snapshot 9825d05f in 0.0008s
+Stepped to new container with snapshot 9825d05f
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: cedb958b in 0.0469s
+Snapshot created: cedb958b
+
+StateFork > history
+#1    [SNAPSHOT  ] -> 6a305aa3 took 0.0478s
+#2    [SNAPSHOT  ] -> 07e598f0 took 0.1253s
+#3    [SNAPSHOT  ] -> 7297a780 took 0.1534s
+#4    [SNAPSHOT  ] -> dcaf83cf took 0.1769s
+#5    [CONTAINER ] -> dcaf83cf took 0.0009s
+#6    [RESTORE   ] -> cd0e00f8 took 0.0147s
+#7    [SNAPSHOT  ] -> 8e5d29bd took 0.0396s
+#8    [CONTAINER ] -> 8e5d29bd took 0.0007s
+#9    [SNAPSHOT  ] -> 287d869e took 0.0677s
+#10   [RESTORE   ] -> 07e598f0 took 0.0048s
+#11   [RESTORE   ] -> cd0e00f8 took 0.0082s
+#12   [SNAPSHOT  ] -> 9825d05f took 0.0380s
+#13   [CONTAINER ] -> 9825d05f took 0.0008s
+#14   [SNAPSHOT  ] -> cedb958b took 0.0469s
+
+StateFork > exit
+[SNAPSHOT  ] mean=0.086942s median=0.057746s min=0.038003s max=0.176869s
+[CONTAINER ] mean=0.000815s median=0.000836s min=0.000695s max=0.000914s
+[RESTORE   ] mean=0.009235s median=0.008209s min=0.004798s max=0.014699s
+Cleaning up resources...
+INFO:base_env_manager:Cleaning up environment...
+INFO:base_env_manager:Cleanup complete.

@@ -25,5 +25,4 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the API server
-# CMD ["uvicorn", "app.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
-CMD ["python3", "app/stateful_logger.py"]
+CMD ["uvicorn", "app.api_server:app", "--host", "127.0.0.1", "--port", "8000"]
