@@ -48,6 +48,26 @@ StateFork implements four concrete environment managers based on different use c
 | `CRIULaunchManager`   | CRIU    | Launches and snapshots a process  | Use for long-running local processes (Python, C++) where the controller manages the lifecycle.               |
 | `CRIUAttachManager`   | CRIU    | Attaches to existing process      | Use when your app is already running locally, and you just want to snapshot/restore via CRIU.                |
 
+### 🏭 Factory Method Support
+StateFork also provides a unified **Factory Method** to simplify the instantiation of different environment managers. 
+Instead of importing backend-specific classes, users can create the appropriate manager by calling a single 
+`create_env_manager(method=..., **kwargs)` function. This improves usability, decouples interface logic from 
+implementation, and allows easy integration with other components (e.g., CLI, RPC, or agent wrappers). Simply 
+specify the backend type (e.g., `"criu_attach"`, `"docker_build"`) along with the required parameters, and the 
+factory will handle the rest.
+```python
+from controller import create_env_manager
+manager = create_env_manager(method="criu_attach", target_pid=12345)
+```
+See the full method table below for supported types and arguments.
+
+| Class Name            | Factory Call Name | Required Arguments                       | Optional Arguments                       |
+|-----------------------|-------------------|------------------------------------------|------------------------------------------|
+| `DockerBuildManager`  | `docker_build`    |                                          | `base_image(str)`, `dockerfile_dir(str)` |
+| `DockerAttachManager` | `docker_attach`   | `container_name(str)`, `base_image(str)` |                                          |
+| `CRIULaunchManager`   | `criu_launch`     |                                          | `work_dir(str)`, `command(List[str])`    |
+| `CRIUAttachManager`   | `criu_attach`     | `target_pid(int)`                        | `work_dir(str)`                          |
+
 > 🧠 The system is extensible: you can easily plug in new backends or integrate with agents via RPC/Web APIs.
 
 ## 🚀 Quick Start

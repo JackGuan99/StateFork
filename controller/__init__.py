@@ -3,10 +3,13 @@ from .docker_env_manager import DockerAttachManager, DockerBuildManager
 from .criu_env_manager import CRIUAttachManager, CRIULaunchManager
 from .benchmark import BenchmarkStats
 
-from typing import Literal, Optional, List, Union
+from typing import Literal
 
 EnvType = Literal["criu_launch", "criu_attach", "docker_build", "docker_attach"]
 
+"""
+Apply the Factory Method pattern to create different environment managers based on the method type.
+"""
 def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
     if method == "criu_launch":
         return CRIULaunchManager(
