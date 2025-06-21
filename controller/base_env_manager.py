@@ -22,7 +22,8 @@ class EnvironmentManager(ABC):
     Applied the Strategy design pattern for different environment managers.
     """
 
-    def __init__(self):
+    def __init__(self, backend_name: str = "Base"):
+        self.backend_name = backend_name
         self.snapshots: Dict[str, str] = {}  # snapshot_id -> image_id
         self.stats = BenchmarkStats()
         self.current_snapshot_id: Optional[str] = None
@@ -180,3 +181,18 @@ class EnvironmentManager(ABC):
         for root in roots:
             recurse(root)
         return self.__tmp_tree_print
+
+    @property
+    def current_snapshot(self) -> Optional[str]:
+        """
+        Get the current snapshot ID.
+        Returns None if no snapshot has been created.
+        """
+        return self.current_snapshot_id
+
+    @property
+    def backend(self) -> str:
+        """
+        Get the name of the backend being used.
+        """
+        return self.backend_name

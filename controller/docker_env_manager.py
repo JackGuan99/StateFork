@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class DockerAttachManager(EnvironmentManager):
     def __init__(self, container_name: str, base_image: str):
-        super().__init__()
+        super().__init__(backend_name="Docker")
         self.container_name = container_name
         self.snapshots["base"] = base_image
 
