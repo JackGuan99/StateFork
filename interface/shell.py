@@ -1,19 +1,18 @@
 import argparse
 
-from docker_env_manager import DockerContainerManager
-from criu_env_manager import CRIUEnvironmentManager
+from controller import DockerBuildManager, CRIULaunchManager
 
 def main(args):
     available_commands = ["snapshot", "restore <id>", "step", "tree", "stats", "history", "exit"]
 
     if args.method == "docker":
-        manager = DockerContainerManager()
+        manager = DockerBuildManager()
     elif args.method == "criu":
-        manager = CRIUEnvironmentManager()
+        manager = CRIULaunchManager()
     else:
         raise ValueError(f"Unsupported command method: {args.method}")
 
-    print("StateFork Container Manager")
+    print("StateFork Container Manager - Interactive Shell")
     print(f"Available commands: {', '.join(available_commands)}")
 
     while True:
