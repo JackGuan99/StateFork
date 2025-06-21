@@ -3,7 +3,7 @@ import time
 import uuid
 import logging
 from typing import Optional
-from base_env_manager import EnvironmentManager, SnapshotNode
+from .base_env_manager import EnvironmentManager, SnapshotNode
 
 logger = logging.getLogger(__name__)
 

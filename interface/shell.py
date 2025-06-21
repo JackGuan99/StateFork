@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from controller import DockerBuildManager, CRIULaunchManager
 
@@ -42,16 +43,16 @@ def main(args):
                 print(f"Stepped to new container with snapshot {sid}")
 
         elif cmd == "tree":
-            manager.print_snapshot_tree()
+            print(manager.print_snapshot_tree())
 
         elif cmd == "stats":
-            manager.stats.print_stats()
+            print(manager.stats.print_stats())
 
         elif cmd == "history":
-            manager.stats.print_history()
+            print(manager.stats.print_history())
 
         elif cmd == "exit":
-            manager.stats.print_stats()
+            print(manager.stats.print_stats())
             print("Cleaning up resources...")
             manager.cleanup()
             break
@@ -65,4 +66,5 @@ if __name__ == "__main__":
     parser.add_argument("--method", choices=["docker", "criu"], default="docker",
                         help="Choose the environment manager backend")
     args_ns = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
     main(args_ns)
