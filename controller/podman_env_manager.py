@@ -7,7 +7,7 @@ import logging
 from typing import Optional
 from .base_env_manager import EnvironmentManager, SnapshotNode
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("EnvManager.Podman")
 
 
 class PodmanHybridManager(EnvironmentManager):

@@ -9,7 +9,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("EnvManager.CRIU")
 
 
 class CRIUAttachManager(EnvironmentManager):

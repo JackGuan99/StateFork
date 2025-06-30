@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from .benchmark import BenchmarkStats
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("EnvManager.Base")
 
 
 @dataclass
