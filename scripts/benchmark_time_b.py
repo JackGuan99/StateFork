@@ -21,15 +21,17 @@ def wait_for_ready(interval: float = 0.005, timeout: float = 5.0) -> float:
 def test_time_b(env: EnvironmentManager) -> float:
     time_b_values = []
 
-    time.sleep(10) # Allow time for the server to start
+    print(f"Starting Time-B benchmark for {REPEATS} steps...")
 
-    print(f"Starting Time-B benchmark for {REPEATS} steps...\n")
+    time.sleep(5) # Allow time for the server to start
+
     for i in range(REPEATS):
         print(f"[Round {i+1}] Sending init request...")
         response = requests.get(URL)
         assert response.status_code == 200
         print(f"[Round {i+1}]     Received: {response.text}")
         print(f"[Round {i+1}] ... Init request successful")
+        time.sleep(1)
 
         print(f"[Round {i+1}] Snapshot and stepping...")
         sid = env.snapshot()
