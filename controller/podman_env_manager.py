@@ -84,7 +84,7 @@ class PodmanBuildManager(PodmanHybridManager):
         subprocess.run(["podman", "build", "-t", image_name, dockerfile_dir], check=True)
 
         logger.info(f"Launching container '{container_name}' from image '{image_name}'...")
-        subprocess.run(["podman", "run", "-d", "-rm", "-p", "8000:8000", "-v", "/tmp:/tmp","--name", container_name, image_name], check=True)
+        subprocess.run(["podman", "run", "-d", "--rm", "-p", "8000:8000", "-v", "/tmp:/tmp","--name", container_name, image_name], check=True)
 
         time.sleep(2)  # wait for app to initialize
 
