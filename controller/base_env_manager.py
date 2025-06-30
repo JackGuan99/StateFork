@@ -1,4 +1,5 @@
 import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -89,14 +90,17 @@ class EnvironmentManager(ABC):
         self.last_snapshot_id = snapshot_id
         return True
 
-    @abstractmethod
     def _core_restore(self, snapshot_id: str) -> tuple[bool, float]:
         """
         Internal method to restore the environment from a snapshot.
-        Concrete implementations should override this method.
+        Here provide a default implementation that can be overridden by concrete managers.
         Returns True if successful, False otherwise and the time taken.
         """
-        pass
+        start = time.time()
+        result, _ = self._core_create_env(snapshot_id)
+        elapsed = time.time() - start
+
+        return result is not None, elapsed
 
     def create_env_from_snapshot(self, snapshot_id: str) -> Optional[str]:
         """
