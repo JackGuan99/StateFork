@@ -1,0 +1,101 @@
+root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method criu
+INFO:EnvManager.CRIU:Starting initial APP...
+INFO:EnvManager.CRIU:Attaching to existing APP process with PID 120114...
+==========================================
+StateFork Container Manager - Interactive Shell
+Using CRIULaunchManager with CRIU backend
+
+Available commands: snapshot, restore <id>, step, tree, stats, history, exit
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 851244dc in 0.0387s
+Snapshot created: 851244dc
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: bd6f6f52 in 0.0407s
+Snapshot created: bd6f6f52
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 655a08f7 in 0.0376s
+Snapshot created: 655a08f7
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 22c1f7db in 0.0368s
+INFO:EnvManager.Base:Container created from snapshot 22c1f7db in 0.0005s
+Stepped to new container with snapshot 22c1f7db
+
+StateFork > tree
+Snapshot Tree:
+ - 2834e871
+   - 851244dc
+     - bd6f6f52
+       - 655a08f7
+         - 22c1f7db (current)
+
+
+StateFork > restore 2834e871
+INFO:EnvManager.Base:Environment restored from snapshot 2834e871 in 0.0042s
+Restored to snapshot 2834e871
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 47cdcd83 in 0.0372s
+INFO:EnvManager.Base:Container created from snapshot 47cdcd83 in 0.0005s
+Stepped to new container with snapshot 47cdcd83
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 248d1097 in 0.0370s
+Snapshot created: 248d1097
+
+StateFork > tree
+Snapshot Tree:
+ - 2834e871
+   - 851244dc
+     - bd6f6f52
+       - 655a08f7
+         - 22c1f7db
+   - 47cdcd83 (current)
+     - 248d1097 (last)
+
+
+StateFork > restore bd6f6f52
+INFO:EnvManager.Base:Environment restored from snapshot bd6f6f52 in 0.0044s
+Restored to snapshot bd6f6f52
+
+StateFork > restore 2834e871
+INFO:EnvManager.Base:Environment restored from snapshot 2834e871 in 0.0043s
+Restored to snapshot 2834e871
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: b497284d in 0.0366s
+INFO:EnvManager.Base:Container created from snapshot b497284d in 0.0004s
+Stepped to new container with snapshot b497284d
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 8e7b7466 in 0.0392s
+Snapshot created: 8e7b7466
+
+StateFork > history
+#1    [SNAPSHOT  ] -> 851244dc took 0.0387s
+#2    [SNAPSHOT  ] -> bd6f6f52 took 0.0407s
+#3    [SNAPSHOT  ] -> 655a08f7 took 0.0376s
+#4    [SNAPSHOT  ] -> 22c1f7db took 0.0368s
+#5    [CONTAINER ] -> 22c1f7db took 0.0005s
+#6    [RESTORE   ] -> 2834e871 took 0.0042s
+#7    [SNAPSHOT  ] -> 47cdcd83 took 0.0372s
+#8    [CONTAINER ] -> 47cdcd83 took 0.0005s
+#9    [SNAPSHOT  ] -> 248d1097 took 0.0370s
+#10   [RESTORE   ] -> bd6f6f52 took 0.0044s
+#11   [RESTORE   ] -> 2834e871 took 0.0043s
+#12   [SNAPSHOT  ] -> b497284d took 0.0366s
+#13   [CONTAINER ] -> b497284d took 0.0004s
+#14   [SNAPSHOT  ] -> 8e7b7466 took 0.0392s
+
+
+StateFork > exit
+[SNAPSHOT  ] mean=0.037981s median=0.037387s min=0.036599s max=0.040732s
+[CONTAINER ] mean=0.000475s median=0.000462s min=0.000433s max=0.000530s
+[RESTORE   ] mean=0.004297s median=0.004276s min=0.004235s max=0.004380s
+
+Cleaning up resources...
+INFO:EnvManager.Base:Cleaning up environment...
+INFO:EnvManager.Base:Cleanup complete.
