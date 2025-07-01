@@ -1,0 +1,126 @@
+root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method docker
+INFO:EnvManager.Docker:Building base Docker image 'statefork-app:latest' from directory '.'...
+[+] Building 0.5s (11/11) FINISHED                                                                                                                    docker:default
+ => [internal] load build definition from Dockerfile                                                                                                            0.0s
+ => => transferring dockerfile: 655B                                                                                                                            0.0s
+ => [internal] load metadata for docker.io/library/python:3.11-slim                                                                                             0.2s
+ => [internal] load .dockerignore                                                                                                                               0.0s
+ => => transferring context: 2B                                                                                                                                 0.0s
+ => [1/6] FROM docker.io/library/python:3.11-slim@sha256:9e1912aab0a30bbd9488eb79063f68f42a68ab0946cbe98fecf197fe5b085506                                       0.0s
+ => [internal] load build context                                                                                                                               0.0s
+ => => transferring context: 36.24kB                                                                                                                            0.0s
+ => CACHED [2/6] WORKDIR /app                                                                                                                                   0.0s
+ => CACHED [3/6] RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*                                                                   0.0s
+ => CACHED [4/6] COPY requirements.txt .                                                                                                                        0.0s
+ => CACHED [5/6] RUN pip install --no-cache-dir -r requirements.txt                                                                                             0.0s
+ => [6/6] COPY . .                                                                                                                                              0.1s
+ => exporting to image                                                                                                                                          0.1s
+ => => exporting layers                                                                                                                                         0.1s
+ => => writing image sha256:c79524a416e1a87fcf397b87837b76652e55c5c31c7ae1567604d73b286742f9                                                                    0.0s
+ => => naming to docker.io/library/statefork-app:latest                                                                                                         0.0s
+INFO:EnvManager.Docker:Creating initial environment from base image...
+5cbc1e91da9287dfca55c5c9180e1dc2b56c959f6da819a856b8e138714377b2
+==========================================
+StateFork Container Manager - Interactive Shell
+Using DockerBuildManager with Docker backend
+
+Available commands: snapshot, restore <id>, step, tree, stats, history, exit
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 3c1f12c0 in 0.0960s
+Snapshot created: 3c1f12c0
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: dcc28dc1 in 0.1177s
+Snapshot created: dcc28dc1
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 8dc35a63 in 0.1092s
+Snapshot created: 8dc35a63
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 50b074ae in 0.0976s
+65618341a95df521b26c2e5abc9e0a0c6d4191295f6b54130f4c8c123513a68d
+INFO:EnvManager.Base:Container created from snapshot 50b074ae in 0.2636s
+Stepped to new container with snapshot 50b074ae
+
+StateFork > tree
+Snapshot Tree:
+ - base
+   - 3c1f12c0
+     - dcc28dc1
+       - 8dc35a63
+         - 50b074ae (current)
+
+
+StateFork > restore base
+25a7f9d2eb002f557989b2d3e779d665c67a5a33e9918b16852aa73208f32ae1
+INFO:EnvManager.Base:Environment restored from snapshot base in 0.4455s
+Restored to snapshot base
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: d8c7408d in 0.1004s
+027ca63e813c64efb2ba45b2f1ca12edcb1333f982b623eca4bac99ab5dfe054
+INFO:EnvManager.Base:Container created from snapshot d8c7408d in 0.2665s
+Stepped to new container with snapshot d8c7408d
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: e25a9b53 in 0.0982s
+Snapshot created: e25a9b53
+
+StateFork > tree
+Snapshot Tree:
+ - base
+   - 3c1f12c0
+     - dcc28dc1
+       - 8dc35a63
+         - 50b074ae
+   - d8c7408d (current)
+     - e25a9b53 (last)
+
+
+StateFork > restore dcc28dc1
+5fb6c67e525c8b31a0619b2c134928086cb7882ccaa48196a6055ed9ee4914e8
+INFO:EnvManager.Base:Environment restored from snapshot dcc28dc1 in 0.4416s
+Restored to snapshot dcc28dc1
+
+StateFork > restore base
+7e4a050e5c45c79881a4b9aadb1ffc0cdf6e25d5c1e71dce62b393595fd16697
+INFO:EnvManager.Base:Environment restored from snapshot base in 0.4813s
+Restored to snapshot base
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 67eac455 in 0.1011s
+59c6c55ede4931ab19eaa767e0e3bd86d88d4177a7abdfc5457cdac543f17061
+INFO:EnvManager.Base:Container created from snapshot 67eac455 in 0.2816s
+Stepped to new container with snapshot 67eac455
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 9a65a5fb in 0.0953s
+Snapshot created: 9a65a5fb
+
+StateFork > history
+#1    [SNAPSHOT  ] -> 3c1f12c0 took 0.0960s
+#2    [SNAPSHOT  ] -> dcc28dc1 took 0.1177s
+#3    [SNAPSHOT  ] -> 8dc35a63 took 0.1092s
+#4    [SNAPSHOT  ] -> 50b074ae took 0.0976s
+#5    [CONTAINER ] -> 50b074ae took 0.2636s
+#6    [RESTORE   ] -> base     took 0.4455s
+#7    [SNAPSHOT  ] -> d8c7408d took 0.1004s
+#8    [CONTAINER ] -> d8c7408d took 0.2665s
+#9    [SNAPSHOT  ] -> e25a9b53 took 0.0982s
+#10   [RESTORE   ] -> dcc28dc1 took 0.4416s
+#11   [RESTORE   ] -> base     took 0.4813s
+#12   [SNAPSHOT  ] -> 67eac455 took 0.1011s
+#13   [CONTAINER ] -> 67eac455 took 0.2816s
+#14   [SNAPSHOT  ] -> 9a65a5fb took 0.0953s
+
+
+StateFork > exit
+[SNAPSHOT  ] mean=0.101945s median=0.099303s min=0.095284s max=0.117729s
+[CONTAINER ] mean=0.270553s median=0.266503s min=0.263603s max=0.281553s
+[RESTORE   ] mean=0.456125s median=0.445476s min=0.441570s max=0.481329s
+
+Cleaning up resources...
+INFO:EnvManager.Base:Cleaning up environment...
+INFO:EnvManager.Base:Cleanup complete.
