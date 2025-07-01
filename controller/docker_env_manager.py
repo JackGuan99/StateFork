@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 from .base_env_manager import EnvironmentManager, SnapshotNode
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("EnvManager.Docker")
 
 
 class DockerAttachManager(EnvironmentManager):
@@ -52,13 +52,6 @@ class DockerAttachManager(EnvironmentManager):
         elapsed = time.time() - start
 
         return self.container_name, elapsed
-
-    def _core_restore(self, snapshot_id: str) -> tuple[bool, float]:
-        start = time.time()
-        result, _ = self._core_create_env(snapshot_id)
-        elapsed = time.time() - start
-
-        return result is not None, elapsed
 
     def _core_cleanup(self):
         subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

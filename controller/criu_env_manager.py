@@ -9,7 +9,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("EnvManager.CRIU")
 
 
 class CRIUAttachManager(EnvironmentManager):
@@ -102,13 +102,6 @@ class CRIUAttachManager(EnvironmentManager):
         except subprocess.CalledProcessError as e:
             logger.error(f"CRIU restore failed: {e}")
             return None, 0.0
-
-    def _core_restore(self, snapshot_id: str) -> tuple[bool, float]:
-        start = time.time()
-        result, _ = self._core_create_env(snapshot_id)
-        elapsed = time.time() - start
-
-        return result is not None, elapsed
 
     def _core_cleanup(self):
         self.__kill_original_process(soft_timeout=2.0, hard_timeout=2.0)
