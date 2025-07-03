@@ -1,0 +1,96 @@
+========== Podman ==========
+===== Without Steps =====
+[0] Request took 11 ms
+[1] Request took 3 ms
+[2] Request took 2 ms
+[3] Request took 2 ms
+[4] Request took 2 ms
+[5] Request took 2 ms
+[6] Request took 2 ms
+[7] Request took 2 ms
+[8] Request took 2 ms
+[9] Request took 2 ms
+
+===== With Steps =====
+[0] Request took 10 ms
+[1] Request took 10 ms
+[2] Request took 10 ms
+[3] Request took 10 ms
+[4] Request took 10 ms
+[5] Request took 10 ms
+[6] Request took 10 ms
+[7] Request took 10 ms
+[8] Request took 10 ms
+[9] Request took 9 ms
+
+========== Docker ==========
+===== Without Steps =====
+[0] Request took 11 ms
+[1] Request took 3 ms
+[2] Request took 2 ms
+[3] Request took 2 ms
+[4] Request took 2 ms
+[5] Request took 2 ms
+[6] Request took 2 ms
+[7] Request took 2 ms
+[8] Request took 1 ms
+[9] Request took 2 ms
+===== With Steps =====
+[0] Request took 10 ms
+[1] Request took 10 ms
+[2] Request took 18 ms
+[3] Request took 9 ms
+[4] Request took 10 ms
+[5] Request took 9 ms
+[6] Request took 10 ms
+[7] Request took 10 ms
+[8] Request took 10 ms
+[9] Request took 10 ms
+
+========== CRIU ==========
+===== Without Steps =====
+[0] Request took 11 ms
+[1] Request took 2 ms
+[2] Request took 2 ms
+[3] Request took 2 ms
+[4] Request took 1 ms
+[5] Request took 1 ms
+[6] Request took 1 ms
+[7] Request took 1 ms
+[8] Request took 1 ms
+[9] Request took 1 ms
+===== With Steps =====
+[0] Request took 7 ms
+[1] Request took 3 ms
+[2] Request took 3 ms
+[3] Request took 3 ms
+[4] Request took 3 ms
+[5] Request took 3 ms
+[6] Request took 2 ms
+[7] Request took 3 ms
+[8] Request took 2 ms
+[9] Request took 3 ms
+
+========== Podman + CRIU ==========
+===== Without Steps =====
+[0] Request took 11 ms
+[1] Request took 3 ms
+[2] Request took 2 ms
+[3] Request took 2 ms
+[4] Request took 2 ms
+[5] Request took 2 ms
+[6] Request took 2 ms
+[7] Request took 2 ms
+[8] Request took 2 ms
+[9] Request took 2 ms
+===== With Steps =====
+[0] Request took 10 ms
+[1] Request took 4 ms
+[2] Request took 3 ms
+[3] Request took 3 ms
+[4] Request took 3 ms
+[5] Request took 3 ms
+[6] Request took 3 ms
+[7] Request took 4 ms
+[8] Request took 3 ms
+[9] Request took 3 ms
