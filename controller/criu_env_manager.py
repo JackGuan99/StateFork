@@ -106,7 +106,9 @@ class CRIUAttachManager(EnvironmentManager):
             return None, 0.0
 
     def _core_cleanup(self):
+        logger.info("Shutting down CRIU environment...")
         self.__kill_original_process(soft_timeout=2.0, hard_timeout=2.0)
+        logger.info(f"Removing work directory {self.work_dir}...")
         shutil.rmtree(self.work_dir, ignore_errors=True)
 
 
