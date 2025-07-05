@@ -20,6 +20,7 @@ class CRIUAttachManager(EnvironmentManager):
         super().__init__(backend_name="CRIU")
         self.work_dir = work_dir
         os.makedirs(self.work_dir, exist_ok=True)
+        self.stats.attach_size_calculator(root_dir=self.work_dir)
 
         self.process = None
         if not psutil.pid_exists(target_pid):

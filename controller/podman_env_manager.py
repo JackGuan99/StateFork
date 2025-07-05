@@ -16,6 +16,7 @@ class PodmanHybridManager(EnvironmentManager):
         self.container_name = container_name
         self.export_dir = export_dir
         os.makedirs(self.export_dir, exist_ok=True)
+        self.stats.attach_size_calculator(root_dir=self.export_dir)
 
         logger.info(f"Initializing PodmanHybridManager with container '{self.container_name}'")
 
