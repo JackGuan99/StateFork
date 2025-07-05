@@ -2,50 +2,90 @@ import logging
 import os
 import statistics
 import subprocess
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Protocol, runtime_checkable
+from typing import List
 
 
 @dataclass
 class BenchmarkEntry:
+    """
+    Represents a single benchmark entry with operation details.
+    """
     sequence: int
     operation: str
     target_id: str
     elapsed_time: float
 
 
-@runtime_checkable
-class SizeCalculator(Protocol):
+class Calculator(ABC):
     """
-    Protocol for size calculators that can summarize and detail storage costs.
-    """
-    def summary(self) -> str:
-        ...
-    def details(self) -> str:
-        ...
-
-
-class FileSizeCalculator:
-    """
-    One generic SizeCalculator that calculates file sizes in a directory using FileSystem's APIs.
+    Base class for size calculators that collect and summarize storage costs of targets.
     """
     _counter = 0
 
-    def __init__(self, root_dir: str):
-        self.logger = logging.getLogger("Benchmark.FileSizeCal")
-        self.root_dir = os.path.abspath(root_dir)
+    def __init__(self, name: str = "Calculator"):
         type(self)._counter += 1
         self.instance_id = type(self)._counter
+        self.name = name
+        self.logger = logging.getLogger(f"Benchmark.{self.name}.#{self.instance_id}")
+
+    @staticmethod
+    def human_readable(size_bytes: int | float) -> str:
+        for unit in ['B', 'KB', 'MB']:
+            if size_bytes < 1024:
+                return f"{size_bytes:.3f} {unit}"
+            size_bytes /= 1024
+        return f"{size_bytes:.3f} GB"
+
+    @abstractmethod
+    def _collect(self) -> List[tuple[str, int]]:
+        """
+        Collects the sizes of targets.
+        Returns a list of tuples (name, size) where size is in bytes.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def summary(self) -> str:
+        sizes = [size for _, size in self._collect()]
+        string = f"[STORAGE #{self.instance_id}] "
+        if not sizes:
+            return string + "No size data available."
+
+        return string + (
+            f"mean={self.human_readable(statistics.mean(sizes))} "
+            f"median={self.human_readable(statistics.median(sizes))} "
+            f"min={self.human_readable(min(sizes))} "
+            f"max={self.human_readable(max(sizes))}\n"
+        )
+
+    def details(self) -> str:
+        data = self._collect()
+        if not data:
+            return "No size data available."
+
+        lines = [f"[Storage Cost Summary #{self.instance_id}]"]
+        for name, size in sorted(data, key=lambda x: x[1], reverse=True):
+            lines.append(f">> {name}: {self.human_readable(size)}")
+        return "\n".join(lines)
+
+
+class FileSizeCalculator(Calculator):
+    """
+    FileSizeCalculator collects the sizes of files and directories in a specified directory.
+    """
+    def __init__(self, root_dir: str):
+        super().__init__(name="FileSizeCalculator")
+        self.root_dir = os.path.abspath(root_dir)
         self.logger.info(f"Attached FileSizeCalculator #{self.instance_id} to directory: {self.root_dir}")
 
-    def _get_all_items(self) -> List[str]:
+    def __get_all_items(self) -> List[str]:
         if not os.path.exists(self.root_dir):
             return []
         return [os.path.join(self.root_dir, name) for name in os.listdir(self.root_dir)]
 
-    @staticmethod
-    def _get_size(path: str) -> int:
+    def __get_size(self, path: str) -> int:
         if os.path.isfile(path):
             return os.path.getsize(path)
         elif os.path.isdir(path):
@@ -57,53 +97,37 @@ class FileSizeCalculator:
                 return 0
         return 0
 
-    @staticmethod
-    def _human_readable(size_bytes: int|float) -> str:
-        for unit in ['B', 'KB', 'MB']:
-            if size_bytes < 1024:
-                return f"{size_bytes:.3f} {unit}"
-            size_bytes /= 1024
-        return f"{size_bytes:.3f} GB"
-
-    def summary(self) -> str:
-        items = self._get_all_items()
-        sizes = [self._get_size(p) for p in items]
-
-        if not sizes:
-            return "No valid snapshot files or directories found in target directory."
-
-        return (f"[STORAGE #{self.instance_id}] "
-               f"mean={self._human_readable(statistics.mean(sizes))} "
-               f"median={self._human_readable(statistics.median(sizes))} "
-               f"min={self._human_readable(min(sizes))} "
-               f"max={self._human_readable(max(sizes))}\n")
-
-    def details(self) -> str:
-        items = self._get_all_items()
+    def _collect(self) -> List[tuple[str, int]]:
+        items = self.__get_all_items()
         if not items:
-            return "No snapshot files or directories found."
+            return []
 
-        lines = [f"[Storage Cost Summary #{self.instance_id}: {self.root_dir}]"]
-        for path in items:
-            size = self._get_size(path)
-            lines.append(f">> {os.path.basename(path)}: {self._human_readable(size)}")
-        return "\n".join(lines)
+        data = []
+        for item in items:
+            size = self.__get_size(item)
+            if size > 0:
+                data.append((os.path.basename(item), size))
+        return data
 
 
 @dataclass
 class BenchmarkStats:
     sequence_counter: int = 0
     log: List[BenchmarkEntry] = field(default_factory=list)
-    size_calculators: List[SizeCalculator] = field(default_factory=list)
+    size_calculators: List[Calculator] = field(default_factory=list)
 
     def add_entry(self, operation: str, target_id: str, elapsed_time: float) -> None:
+        """
+        Add a new benchmark entry to the log.
+        """
         self.sequence_counter += 1
         self.log.append(BenchmarkEntry(self.sequence_counter, operation, target_id, elapsed_time))
 
-    def attach_size_calculator(self, sc: SizeCalculator) -> None:
-        if not isinstance(sc, SizeCalculator):
-            raise TypeError("SizeCalculator must implement the SizeCalculator protocol.")
-        self.size_calculators.append(sc)
+    def attach_size_calculator(self, cal: Calculator) -> None:
+        """
+        Attach a size calculator to the benchmark stats.
+        """
+        self.size_calculators.append(cal)
 
     def print_stats(self) -> str:
         stats = defaultdict(list)
