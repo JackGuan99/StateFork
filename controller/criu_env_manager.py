@@ -21,7 +21,6 @@ class CRIUAttachManager(EnvironmentManager):
         super().__init__(backend_name="CRIU")
         self.work_dir = work_dir
         os.makedirs(self.work_dir, exist_ok=True)
-        self.stats.attach_size_calculator(FileSizeCalculator(self.work_dir))
 
         self.process = None
         if not psutil.pid_exists(target_pid):
@@ -33,9 +32,14 @@ class CRIUAttachManager(EnvironmentManager):
         if sid is None:
             raise RuntimeError("Failed to create initial snapshot.")
 
+        # Init the Tree Graph
         self.snapshot_graph[sid] = SnapshotNode(snapshot_id=sid, parent_id=None)
         self.current_snapshot_id = sid
         self.last_snapshot_id = sid
+
+        # Attach the FileSizeCalculator to the work directory
+        self.stats.attach_size_calculator(FileSizeCalculator(self.work_dir))
+
 
     # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!
     # TODO: Any more efficient way to kill the original process?

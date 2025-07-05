@@ -17,7 +17,6 @@ class HybridAttachManager(EnvironmentManager):
         self.container_name = container_name
         self.export_dir = export_dir
         os.makedirs(self.export_dir, exist_ok=True)
-        self.stats.attach_size_calculator(FileSizeCalculator(self.export_dir))
 
         logger.info(f"Initializing PodmanHybridManager with container '{self.container_name}'")
 
@@ -33,6 +32,10 @@ class HybridAttachManager(EnvironmentManager):
         self.snapshot_graph[sid] = SnapshotNode(snapshot_id=sid, parent_id=None)
         self.current_snapshot_id = sid
         self.last_snapshot_id = sid
+
+        # Attach the FileSizeCalculator to the export directory
+        self.stats.attach_size_calculator(FileSizeCalculator(self.export_dir))
+
 
     def __ensure_container_running(self):
         result = subprocess.run(["podman", "ps", "-q", "-f", f"name={self.container_name}"], capture_output=True, text=True)

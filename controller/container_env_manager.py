@@ -1,9 +1,11 @@
+import re
 import subprocess
 import time
 import uuid
 import logging
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
+from .benchmark import Calculator
 
 BackendType = Literal["Docker", "Podman"]
 
@@ -21,6 +23,55 @@ def get_backend_tool(backend: BackendType) -> tuple[str, str, logging.Logger]:
         raise ValueError(f"Unsupported backend: {backend}")
 
 
+class ImageCalculator(Calculator):
+    def __init__(self, cli_command: str, repository: str):
+        super().__init__(name="ImageCalculator")
+        self.cli = cli_command
+        self.repository = repository
+        self.logger.info(f"Tracking image sizes for '{self.repository}' via `{self.cli} images --format`")
+
+    def _collect(self) -> List[tuple[str, int]]:
+        try:
+            output = subprocess.check_output(
+                [self.cli, "images", self.repository, "--format", "{{.Repository}}:{{.Tag}} {{.Size}}"],
+                text=True
+            )
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Failed to list images: {e}")
+            return []
+
+        data = []
+        for line in output.strip().splitlines():
+            try:
+                name, size_str = line.strip().split()
+                size_bytes = self.parse_size(size_str)
+                data.append((name, size_bytes))
+            except ValueError as e:
+                self.logger.warning(f"Skipping malformed line '{line}': {e}")
+        return data
+
+    @staticmethod
+    def parse_size(size_str: str) -> int:
+        """
+        Converts strings like '824.5MB', '56KB', '1.2GB' to bytes.
+        """
+        match = re.match(r"([0-9.]+)([KMG]?B)", size_str.upper())
+        if not match:
+            raise ValueError(f"Invalid size format: {size_str}")
+
+        num = float(match.group(1))
+        unit = match.group(2)
+
+        multiplier = {
+            "B": 1,
+            "KB": 1024,
+            "MB": 1024**2,
+            "GB": 1024**3
+        }.get(unit, 1)
+
+        return int(num * multiplier)
+
+
 class ContainerAttachManager(EnvironmentManager):
     def __init__(self, backend: BackendType, container_name: str, base_image: str):
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
@@ -34,6 +85,10 @@ class ContainerAttachManager(EnvironmentManager):
         self.snapshot_graph["base"] = SnapshotNode(snapshot_id="base", parent_id=None)
         self.current_snapshot_id = "base"
         self.last_snapshot_id = "base"
+
+        # Attach the ImageCalculator to track image sizes
+        ic = ImageCalculator(self.BACKEND_CMD, self.image_prefix)
+        self.stats.attach_size_calculator(ic)
 
 
     def _core_snapshot(self) -> tuple[Optional[str], float]:
