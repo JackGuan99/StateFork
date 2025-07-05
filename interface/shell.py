@@ -8,10 +8,12 @@ def main(args):
 
     if args.method == "docker":
         manager = create_env_manager("docker_build")
-    elif args.method == "criu":
-        manager = create_env_manager("criu_launch")
     elif args.method == "podman":
         manager = create_env_manager("podman_build")
+    elif args.method == "criu":
+        manager = create_env_manager("criu_build")
+    elif args.method == "hybrid":
+        manager = create_env_manager("hybrid_build")
     else:
         raise ValueError(f"Unsupported command method: {args.method}")
 
