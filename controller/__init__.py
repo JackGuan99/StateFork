@@ -30,7 +30,7 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
     elif method == "docker_build":
         return ContainerBuildManager(
             backend="Docker",
-            base_image=kwargs.get("base_image", "statefork-app:base"),
+            base_image=kwargs.get("base_image"),
             dockerfile_dir=kwargs.get("dockerfile_dir", ".")
         )
     elif method == "docker_attach":
@@ -42,7 +42,7 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
     elif method == "podman_build":
         return ContainerBuildManager(
             backend="Podman",
-            base_image=kwargs.get("base_image", "statefork-app:base"),
+            base_image=kwargs.get("base_image"),
             dockerfile_dir=kwargs.get("dockerfile_dir", ".")
         )
     elif method == "podman_attach":

@@ -26,7 +26,8 @@ class ContainerAttachManager(EnvironmentManager):
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
         super().__init__(backend_name=self.BACKEND_NAME)
         self.container_name = container_name
-        self.image_prefix = "statefork-app"
+        self.image_prefix, _ = base_image.split(":", 1)
+        self.logger.info(f"Recognized base image prefix: {self.image_prefix}")
         self.snapshots["base"] = base_image
 
         # Init the Tree Graph
@@ -79,8 +80,11 @@ class ContainerAttachManager(EnvironmentManager):
 
 
 class ContainerBuildManager(ContainerAttachManager):
-    def __init__(self, backend: BackendType, base_image: str = "statefork-app:base", dockerfile_dir: str = "."):
+    def __init__(self, backend: BackendType, dockerfile_dir: str = ".", base_image: str = None):
         backend_cmd, backend_name, logger = get_backend_tool(backend)
+
+        if base_image is None:
+            base_image = f"statefork_{str(uuid.uuid4())[:4]}:base"
         logger.info(f"Building base {backend_name} image '{base_image}' from directory '{dockerfile_dir}'...")
         subprocess.run([backend_cmd, "build", "-t", base_image, dockerfile_dir], check=True)
 
