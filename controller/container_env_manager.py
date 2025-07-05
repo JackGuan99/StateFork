@@ -43,7 +43,9 @@ class ImageCalculator(Calculator):
         data = []
         for line in output.strip().splitlines():
             try:
-                name, size_str = line.strip().split()
+                parts = line.strip().split()
+                name = parts[0]
+                size_str = ''.join(parts[1:]).replace(" ", "")
                 size_bytes = self.parse_size(size_str)
                 data.append((name, size_bytes))
             except ValueError as e:

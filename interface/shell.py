@@ -73,7 +73,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Environment Manager Launcher")
-    parser.add_argument("--method", choices=["docker", "criu", "podman"], default="docker",
+    parser.add_argument("--method", choices=["docker", "criu", "podman", "hybrid"], default="docker",
                         help="Choose the environment manager backend")
     args_ns = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
