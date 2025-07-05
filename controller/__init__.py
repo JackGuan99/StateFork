@@ -1,19 +1,24 @@
 from .base_env_manager import EnvironmentManager
-from .docker_env_manager import DockerAttachManager, DockerBuildManager
-from .criu_env_manager import CRIUAttachManager, CRIULaunchManager
-from .podman_env_manager import PodmanHybridManager, PodmanBuildManager
+from .container_env_manager import ContainerAttachManager, ContainerBuildManager
+from .criu_env_manager import CRIUAttachManager, CRIUBuildManager
+from .hybrid_env_manager import HybridAttachManager, HybridBuildManager
 from .benchmark import BenchmarkStats
 
 from typing import Literal
 
-EnvType = Literal["criu_launch", "criu_attach", "docker_build", "docker_attach", "podman_build", "podman_attach"]
+EnvType = Literal[
+    "criu_build", "criu_attach",
+    "docker_build", "docker_attach",
+    "podman_build", "podman_attach",
+    "hybrid_build", "hybrid_attach"
+]
 
 """
 Apply the Factory Method pattern to create different environment managers based on the method type.
 """
 def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
-    if method == "criu_launch":
-        return CRIULaunchManager(
+    if method == "criu_build":
+        return CRIUBuildManager(
             work_dir=kwargs.get("work_dir", "/tmp/statefork_criu"),
             command=kwargs.get("command")
         )
@@ -23,23 +28,37 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
             work_dir=kwargs.get("work_dir", "/tmp/statefork_criu")
         )
     elif method == "docker_build":
-        return DockerBuildManager(
-            base_image=kwargs.get("base_image", "statefork-app:latest"),
+        return ContainerBuildManager(
+            backend="Docker",
+            base_image=kwargs.get("base_image", "statefork-app:base"),
             dockerfile_dir=kwargs.get("dockerfile_dir", ".")
         )
     elif method == "docker_attach":
-        return DockerAttachManager(
+        return ContainerAttachManager(
+            backend="Docker",
             container_name=kwargs["container_name"],
-            base_image=kwargs.get("base_image", "statefork-app:latest")
+            base_image=kwargs.get("base_image", "statefork-app:base")
         )
     elif method == "podman_build":
-        return PodmanBuildManager(
+        return ContainerBuildManager(
+            backend="Podman",
+            base_image=kwargs.get("base_image", "statefork-app:base"),
+            dockerfile_dir=kwargs.get("dockerfile_dir", ".")
+        )
+    elif method == "podman_attach":
+        return ContainerAttachManager(
+            backend="Podman",
+            container_name=kwargs["container_name"],
+            base_image=kwargs.get("base_image", "statefork-app:base")
+        )
+    elif method == "hybrid_build":
+        return HybridBuildManager(
             container_name=kwargs.get("container_name", "podman-build"),
             dockerfile_dir=kwargs.get("dockerfile_dir", "."),
             export_dir=kwargs.get("export_dir", "/tmp/statefork_podman")
         )
-    elif method == "podman_attach":
-        return PodmanHybridManager(
+    elif method == "hybrid_attach":
+        return HybridAttachManager(
             container_name=kwargs["container_name"],
             export_dir=kwargs.get("export_dir", "/tmp/statefork_podman")
         )

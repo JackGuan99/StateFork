@@ -11,7 +11,7 @@ from .benchmark import FileSizeCalculator
 logger = logging.getLogger("EnvManager.PodmanHybrid")
 
 
-class PodmanHybridManager(EnvironmentManager):
+class HybridAttachManager(EnvironmentManager):
     def __init__(self, container_name: str, export_dir: str = "/tmp/statefork_podman"):
         super().__init__(backend_name="Podman+CRIU")
         self.container_name = container_name
@@ -81,7 +81,7 @@ class PodmanHybridManager(EnvironmentManager):
         shutil.rmtree(self.export_dir, ignore_errors=True)
 
 
-class PodmanBuildManager(PodmanHybridManager):
+class HybridBuildManager(HybridAttachManager):
     def __init__(self, container_name="podman-build", dockerfile_dir: str = ".", export_dir: str = "/tmp/statefork_podman"):
         image_name = "init_image"
         logger.info(f"Building Podman image from directory '{dockerfile_dir}'...")

@@ -5,10 +5,6 @@ import logging
 from typing import Optional, Literal
 from .base_env_manager import EnvironmentManager, SnapshotNode
 
-
-class DockerAttachManager(EnvironmentManager):
-    def __init__(self, container_name: str, base_image: str):
-        super().__init__(backend_name=REAL_BACKEND_STR)
 BackendType = Literal["Docker", "Podman"]
 
 def get_backend_tool(backend: BackendType) -> tuple[str, str, logging.Logger]:
@@ -25,6 +21,7 @@ def get_backend_tool(backend: BackendType) -> tuple[str, str, logging.Logger]:
         raise ValueError(f"Unsupported backend: {backend}")
 
 
+class ContainerAttachManager(EnvironmentManager):
     def __init__(self, backend: BackendType, container_name: str, base_image: str):
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
         super().__init__(backend_name=self.BACKEND_NAME)
@@ -81,7 +78,7 @@ def get_backend_tool(backend: BackendType) -> tuple[str, str, logging.Logger]:
             del self.snapshots[snapshot_id]
 
 
-class DockerBuildManager(DockerAttachManager):
+class ContainerBuildManager(ContainerAttachManager):
     def __init__(self, backend: BackendType, base_image: str = "statefork-app:base", dockerfile_dir: str = "."):
         backend_cmd, backend_name, logger = get_backend_tool(backend)
         logger.info(f"Building base {backend_name} image '{base_image}' from directory '{dockerfile_dir}'...")

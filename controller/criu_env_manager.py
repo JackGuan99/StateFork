@@ -112,9 +112,9 @@ class CRIUAttachManager(EnvironmentManager):
         shutil.rmtree(self.work_dir, ignore_errors=True)
 
 
-class CRIULaunchManager(CRIUAttachManager):
+class CRIUBuildManager(CRIUAttachManager):
     """
-    CRIULaunchManager is a specialized CRIU EnvironmentManager that launches a new APP process.
+    CRIUBuildManager is a specialized CRIU EnvironmentManager that launches a new APP process.
     """
     def __init__(self, work_dir: str = "/tmp/statefork_criu", command: Optional[List[str]] = None):
         if command is None:
