@@ -32,6 +32,16 @@ class EnvironmentManager(ABC):
         self.snapshot_graph: Dict[str, SnapshotNode] = {}  # snapshot_id -> SnapshotNode
         self.__tmp_tree_print: str = "" # Temporary variable for tree printing, note this makes it non-thread-safe
 
+
+    def __del__(self):
+        """
+        Cleanup resources when the EnvironmentManager is deleted.
+        This is a fallback to ensure cleanup if not explicitly called.
+        """
+        logger.info("EnvironmentManager is being deleted, performing cleanup...")
+        self.cleanup()
+
+
     def snapshot(self) -> Optional[str]:
         """
         Create a snapshot of the current environment.
