@@ -17,7 +17,10 @@ class CRIUAttachManager(EnvironmentManager):
     """
     CRIUAttachManager is a specialized CRIU EnvironmentManager that attaches to an existing process.
     """
-    def __init__(self, target_pid: int, work_dir: str = "/tmp/statefork_criu"):
+    def __init__(self,
+                 target_pid: int,
+                 work_dir: str = "/tmp/statefork_criu"
+                 ):
         super().__init__(backend_name="CRIU")
         self.work_dir = work_dir
         os.makedirs(self.work_dir, exist_ok=True)
@@ -120,7 +123,10 @@ class CRIUBuildManager(CRIUAttachManager):
     """
     CRIUBuildManager is a specialized CRIU EnvironmentManager that launches a new APP process.
     """
-    def __init__(self, work_dir: str = "/tmp/statefork_criu", command: Optional[List[str]] = None):
+    def __init__(self,
+                 work_dir: str = "/tmp/statefork_criu",
+                 command: Optional[List[str]] = None
+                 ):
         if command is None:
             command = [
                 "uvicorn", "app.api_server:app",

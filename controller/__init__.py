@@ -31,31 +31,36 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
         return ContainerBuildManager(
             backend="Docker",
             base_image=kwargs.get("base_image"),
-            dockerfile_dir=kwargs.get("dockerfile_dir", ".")
+            dockerfile_dir=kwargs.get("dockerfile_dir", "."),
+            extra_args=kwargs.get("extra_args")
         )
     elif method == "docker_attach":
         return ContainerAttachManager(
             backend="Docker",
             container_name=kwargs["container_name"],
-            base_image=kwargs.get("base_image", "statefork-app:base")
+            base_image=kwargs.get("base_image", "statefork-app:base"),
+            extra_args=kwargs.get("extra_args")
         )
     elif method == "podman_build":
         return ContainerBuildManager(
             backend="Podman",
             base_image=kwargs.get("base_image"),
-            dockerfile_dir=kwargs.get("dockerfile_dir", ".")
+            dockerfile_dir=kwargs.get("dockerfile_dir", "."),
+            extra_args=kwargs.get("extra_args")
         )
     elif method == "podman_attach":
         return ContainerAttachManager(
             backend="Podman",
             container_name=kwargs["container_name"],
-            base_image=kwargs.get("base_image", "statefork-app:base")
+            base_image=kwargs.get("base_image", "statefork-app:base"),
+            extra_args=kwargs.get("extra_args")
         )
     elif method == "hybrid_build":
         return HybridBuildManager(
             container_name=kwargs.get("container_name", "podman-build"),
             dockerfile_dir=kwargs.get("dockerfile_dir", "."),
-            export_dir=kwargs.get("export_dir", "/tmp/statefork_podman")
+            export_dir=kwargs.get("export_dir", "/tmp/statefork_podman"),
+            extra_args=kwargs.get("extra_args")
         )
     elif method == "hybrid_attach":
         return HybridAttachManager(

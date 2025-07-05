@@ -75,10 +75,16 @@ class ImageCalculator(Calculator):
 
 
 class ContainerAttachManager(EnvironmentManager):
-    def __init__(self, backend: BackendType, container_name: str, base_image: str):
+    def __init__(self,
+                 backend: BackendType,
+                 container_name: str,
+                 base_image: str,
+                 extra_args: Optional[List[str]] = None
+                 ):
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
         super().__init__(backend_name=self.BACKEND_NAME)
         self.container_name = container_name
+        self.extra_args = extra_args or []
         self.image_prefix, _ = base_image.split(":", 1)
         self.logger.info(f"Recognized base image prefix: {self.image_prefix}")
         self.snapshots["base"] = base_image
@@ -114,14 +120,11 @@ class ContainerAttachManager(EnvironmentManager):
         # Stop & remove existing container if running
         subprocess.run([self.BACKEND_CMD, "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+        cmd = [self.BACKEND_CMD, "run", "-d", "--rm", "--name", self.container_name] + self.extra_args + [image_name]
+        self.logger.debug(f"Launching container with command: {' '.join(cmd)}")
+
         start = time.time()
-        subprocess.run([
-            self.BACKEND_CMD, "run", "-d", "--rm",
-            "--name", self.container_name,
-            "-p", "8000:8000",
-            "-v", "/tmp:/tmp",
-            image_name
-        ], check=True)
+        subprocess.run(cmd, check=True)
         elapsed = time.time() - start
 
         return self.container_name, elapsed
@@ -137,15 +140,24 @@ class ContainerAttachManager(EnvironmentManager):
 
 
 class ContainerBuildManager(ContainerAttachManager):
-    def __init__(self, backend: BackendType, dockerfile_dir: str = ".", base_image: str = None):
+    def __init__(self,
+                 backend: BackendType,
+                 dockerfile_dir: str = ".",
+                 base_image: str = None,
+                 extra_args: Optional[List[str]] = None
+                 ):
         backend_cmd, backend_name, logger = get_backend_tool(backend)
 
         if base_image is None:
             base_image = f"statefork_{str(uuid.uuid4())[:4]}:base"
+
+        if extra_args is None:
+            extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+
         logger.info(f"Building base {backend_name} image '{base_image}' from directory '{dockerfile_dir}'...")
         subprocess.run([backend_cmd, "build", "-t", base_image, dockerfile_dir], check=True)
 
-        super().__init__(backend=backend, container_name="statefork_active", base_image=base_image)
+        super().__init__(backend=backend, container_name="statefork_active", base_image=base_image, extra_args=extra_args)
 
         logger.info("Creating initial environment from base image...")
         res, _ = self._core_create_env("base")

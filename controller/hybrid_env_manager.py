@@ -4,7 +4,7 @@ import time
 import uuid
 import shutil
 import logging
-from typing import Optional
+from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import FileSizeCalculator
 
@@ -12,7 +12,10 @@ logger = logging.getLogger("EnvManager.PodmanHybrid")
 
 
 class HybridAttachManager(EnvironmentManager):
-    def __init__(self, container_name: str, export_dir: str = "/tmp/statefork_podman"):
+    def __init__(self,
+                 container_name: str,
+                 export_dir: str = "/tmp/statefork_podman"
+                 ):
         super().__init__(backend_name="Podman+CRIU")
         self.container_name = container_name
         self.export_dir = export_dir
@@ -85,13 +88,22 @@ class HybridAttachManager(EnvironmentManager):
 
 
 class HybridBuildManager(HybridAttachManager):
-    def __init__(self, container_name="podman-build", dockerfile_dir: str = ".", export_dir: str = "/tmp/statefork_podman"):
+    def __init__(self,
+                 container_name: str = "podman-build",
+                 dockerfile_dir: str = ".",
+                 export_dir: str = "/tmp/statefork_podman",
+                 extra_args: Optional[List[str]] = None
+                 ):
         image_name = "init_image"
+        if extra_args is None:
+            extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+
         logger.info(f"Building Podman image from directory '{dockerfile_dir}'...")
         subprocess.run(["podman", "build", "-t", image_name, dockerfile_dir], check=True)
 
         logger.info(f"Launching container '{container_name}' from image '{image_name}'...")
-        subprocess.run(["podman", "run", "-d", "--rm", "-p", "8000:8000", "-v", "/tmp:/tmp","--name", container_name, image_name], check=True)
+        cmd = ["podman", "run", "-d", "--rm", "--name", container_name] + extra_args + [image_name]
+        subprocess.run(cmd, check=True)
 
         time.sleep(2)  # wait for app to initialize
 
