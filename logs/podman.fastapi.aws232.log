@@ -1,139 +1,118 @@
-root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method docker
-INFO:EnvManager.Podman:Building base Docker image 'statefork-app:latest' from directory '.'...
-STEP 1/11: FROM python:3.11-slim
-STEP 2/11: LABEL authors="alex"
---> Using cache de4069bcbcc232ace73dbe9606e35d93d6bc65c1d087c6de19e767798579df44
---> de4069bcbcc
-STEP 3/11: ENV PYTHONDONTWRITEBYTECODE=1
---> Using cache 420f21856571a52b6501ee27dcdf61256031bad15a3339917b47c6c52cd78e8c
---> 420f2185657
-STEP 4/11: ENV PYTHONUNBUFFERED=1
---> Using cache 65d8218cc81c557e4538dae7437397e8ebad4eebfe20f74a38a77395c7ef0704
---> 65d8218cc81
-STEP 5/11: WORKDIR /app
---> Using cache 0001206461664751a9168f5bf11e977f98753f3dde4734b2fb8c00f363b8b674
---> 00012064616
-STEP 6/11: RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
---> Using cache 432eb909f0dd47b342c8de73adc797ea37e2fa3a2c9ed1f66e4a23117bb93cec
---> 432eb909f0d
-STEP 7/11: COPY requirements.txt .
---> Using cache 878edbd8c57a5ed31344f773f6813fde094cbf5d3daf0738a32483490e11a9fc
---> 878edbd8c57
-STEP 8/11: RUN pip install --no-cache-dir -r requirements.txt
---> Using cache e05002d1c387b723078f96b69fd345b19f367dc7cc9bbaf5f00f51aee73d29e9
---> e05002d1c38
-STEP 9/11: COPY . .
---> 86fe0867677
-STEP 10/11: EXPOSE 8000
---> 370a7212aee
-STEP 11/11: CMD ["uvicorn", "app.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
-COMMIT statefork-app:latest
---> 61d537eb94e
-Successfully tagged localhost/statefork-app:latest
-61d537eb94e5a62d477430b33eaa23fb4b2c0e6733b07710ddb1dc1c18a235b5
+root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method podman
+INFO:EnvManager.Podman:Building base Podman image 'statefork_64b6:base' from directory '.'...
+INFO:EnvManager.Podman:Recognized base image prefix: statefork_64b6
+INFO:Benchmark.ImageCalculator.#1:Calculator initialized.
 INFO:EnvManager.Podman:Creating initial environment from base image...
-f04a2a6ad7f2e3e626038ae883b1db05aada63b6230ec3c0c6070d463cffdc0b
 ==========================================
 StateFork Container Manager - Interactive Shell
-Using DockerBuildManager with Podman backend
+Using ContainerBuildManager with Podman backend
 
-Available commands: snapshot, restore <id>, step, tree, stats, history, exit
-
-StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 8a7722df in 0.2401s
-Snapshot created: 8a7722df
+Available commands: snapshot, restore <id>, step, tree, stats, history, storage, exit
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: f93d88d5 in 0.1390s
-Snapshot created: f93d88d5
+INFO:EnvManager.Base:Snapshot created: 371c60c3 in 0.2407s
+Snapshot created: 371c60c3
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: d0fc7c0c in 0.1388s
-Snapshot created: d0fc7c0c
+INFO:EnvManager.Base:Snapshot created: c491914c in 0.1384s
+Snapshot created: c491914c
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 91393a1b in 0.1390s
+Snapshot created: 91393a1b
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: ab91704f in 0.1367s
-ee3586a1872c284dade1d2bf23caf61c060abda1bd38917d174ebce673a9e568
-INFO:EnvManager.Base:Container created from snapshot ab91704f in 0.3479s
-Stepped to new container with snapshot ab91704f
+INFO:EnvManager.Base:Snapshot created: 51bcbbde in 0.1413s
+INFO:EnvManager.Base:Container created from snapshot 51bcbbde in 0.3530s
+Stepped to new container with snapshot 51bcbbde
 
 StateFork > tree
 Snapshot Tree:
  - base
-   - 8a7722df
-     - f93d88d5
-       - d0fc7c0c
-         - ab91704f (current)
+   - 371c60c3
+     - c491914c
+       - 91393a1b
+         - 51bcbbde (current)
 
 
 StateFork > restore base
-883d7055a50114bac7cc4a12763c5364bc248f14ad98c817851e52430a1bcb9d
-INFO:EnvManager.Base:Environment restored from snapshot base in 1.0909s
+INFO:EnvManager.Base:Environment restored from snapshot base in 0.8874s
 Restored to snapshot base
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: e49c0211 in 0.2417s
-84cc922b306c333f130da6c44ebd43cb39d37d3dcc1855aa2d9709a2220f0605
-INFO:EnvManager.Base:Container created from snapshot e49c0211 in 0.3419s
-Stepped to new container with snapshot e49c0211
+INFO:EnvManager.Base:Snapshot created: 5e74efb2 in 0.2395s
+INFO:EnvManager.Base:Container created from snapshot 5e74efb2 in 0.3410s
+Stepped to new container with snapshot 5e74efb2
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 9ef5ef05 in 0.2403s
-Snapshot created: 9ef5ef05
+INFO:EnvManager.Base:Snapshot created: 9cbe826a in 0.2406s
+Snapshot created: 9cbe826a
 
 StateFork > tree
 Snapshot Tree:
  - base
-   - 8a7722df
-     - f93d88d5
-       - d0fc7c0c
-         - ab91704f
-   - e49c0211 (current)
-     - 9ef5ef05 (last)
+   - 371c60c3
+     - c491914c
+       - 91393a1b
+         - 51bcbbde
+   - 5e74efb2 (current)
+     - 9cbe826a (last)
 
 
-StateFork > restore f93d88d5
-2a9fbd4014a047ae8b365996d73af02949f9fc790b51bba1b4e842555581c1c4
-INFO:EnvManager.Base:Environment restored from snapshot f93d88d5 in 0.8858s
-Restored to snapshot f93d88d5
+StateFork > restore c491914c
+INFO:EnvManager.Base:Environment restored from snapshot c491914c in 0.8878s
+Restored to snapshot c491914c
 
 StateFork > restore base
-de77f1a92977d9cbaf08832932ab15b6e23684d038aba35e68dbb3dc57fcd824
-INFO:EnvManager.Base:Environment restored from snapshot base in 1.0978s
+INFO:EnvManager.Base:Environment restored from snapshot base in 1.1910s
 Restored to snapshot base
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: 06c54259 in 0.2423s
-d270bb65cd80d95add113f4063ed2f642acdfbe9933a44983b99ed1f102aa0be
-INFO:EnvManager.Base:Container created from snapshot 06c54259 in 0.3411s
-Stepped to new container with snapshot 06c54259
+INFO:EnvManager.Base:Snapshot created: 89338212 in 0.2466s
+INFO:EnvManager.Base:Container created from snapshot 89338212 in 0.4447s
+Stepped to new container with snapshot 89338212
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: e508ef4c in 0.2433s
-Snapshot created: e508ef4c
+INFO:EnvManager.Base:Snapshot created: 0701fd6c in 0.2418s
+Snapshot created: 0701fd6c
 
 StateFork > history
-#1    [SNAPSHOT  ] -> 8a7722df took 0.2401s
-#2    [SNAPSHOT  ] -> f93d88d5 took 0.1390s
-#3    [SNAPSHOT  ] -> d0fc7c0c took 0.1388s
-#4    [SNAPSHOT  ] -> ab91704f took 0.1367s
-#5    [CONTAINER ] -> ab91704f took 0.3479s
-#6    [RESTORE   ] -> base     took 1.0909s
-#7    [SNAPSHOT  ] -> e49c0211 took 0.2417s
-#8    [CONTAINER ] -> e49c0211 took 0.3419s
-#9    [SNAPSHOT  ] -> 9ef5ef05 took 0.2403s
-#10   [RESTORE   ] -> f93d88d5 took 0.8858s
-#11   [RESTORE   ] -> base     took 1.0978s
-#12   [SNAPSHOT  ] -> 06c54259 took 0.2423s
-#13   [CONTAINER ] -> 06c54259 took 0.3411s
-#14   [SNAPSHOT  ] -> e508ef4c took 0.2433s
+#1    [SNAPSHOT  ] -> 371c60c3 took 0.2407s
+#2    [SNAPSHOT  ] -> c491914c took 0.1384s
+#3    [SNAPSHOT  ] -> 91393a1b took 0.1390s
+#4    [SNAPSHOT  ] -> 51bcbbde took 0.1413s
+#5    [CONTAINER ] -> 51bcbbde took 0.3530s
+#6    [RESTORE   ] -> base     took 0.8874s
+#7    [SNAPSHOT  ] -> 5e74efb2 took 0.2395s
+#8    [CONTAINER ] -> 5e74efb2 took 0.3410s
+#9    [SNAPSHOT  ] -> 9cbe826a took 0.2406s
+#10   [RESTORE   ] -> c491914c took 0.8878s
+#11   [RESTORE   ] -> base     took 1.1910s
+#12   [SNAPSHOT  ] -> 89338212 took 0.2466s
+#13   [CONTAINER ] -> 89338212 took 0.4447s
+#14   [SNAPSHOT  ] -> 0701fd6c took 0.2418s
 
+
+StateFork > storage
+[Storage Cost Summary #1]
+>> localhost/statefork_64b6:0701fd6c: 163.000 MB
+>> localhost/statefork_64b6:89338212: 163.000 MB
+>> localhost/statefork_64b6:9cbe826a: 163.000 MB
+>> localhost/statefork_64b6:5e74efb2: 163.000 MB
+>> localhost/statefork_64b6:51bcbbde: 163.000 MB
+>> localhost/statefork_64b6:91393a1b: 163.000 MB
+>> localhost/statefork_64b6:c491914c: 163.000 MB
+>> localhost/statefork_64b6:371c60c3: 163.000 MB
+>> localhost/statefork_64b6:base: 163.000 MB
 
 StateFork > exit
-[SNAPSHOT  ] mean=0.202776s median=0.240216s min=0.136685s max=0.243340s
-[CONTAINER ] mean=0.343649s median=0.341946s min=0.341074s max=0.347927s
-[RESTORE   ] mean=1.024824s median=1.090896s min=0.885827s max=1.097751s
+[SNAPSHOT  ] mean=0.203485s median=0.240041s min=0.138448s max=0.246568s
+[CONTAINER ] mean=0.379560s median=0.352969s min=0.341012s max=0.444700s
+[RESTORE   ] mean=0.988725s median=0.887801s min=0.887381s max=1.190994s
+[STORAGE #1] mean=163.000 MB median=163.000 MB min=163.000 MB max=163.000 MB
 
 Cleaning up resources...
 INFO:EnvManager.Base:Cleaning up environment...
+INFO:EnvManager.Podman:Cleaning up Podman container 'statefork_active'
+INFO:EnvManager.Podman:Cleaning up Podman images...
 INFO:EnvManager.Base:Cleanup complete.

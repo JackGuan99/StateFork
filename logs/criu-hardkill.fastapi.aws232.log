@@ -1,101 +1,117 @@
 root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method criu
 INFO:EnvManager.CRIU:Starting initial APP...
-INFO:EnvManager.CRIU:Attaching to existing APP process with PID 120114...
+INFO:EnvManager.CRIU:Attaching to existing APP process with PID 464608...
+INFO:Benchmark.FileSizeCalculator.#1:Calculator initialized.
 ==========================================
 StateFork Container Manager - Interactive Shell
-Using CRIULaunchManager with CRIU backend
+Using CRIUBuildManager with CRIU backend
 
-Available commands: snapshot, restore <id>, step, tree, stats, history, exit
-
-StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 851244dc in 0.0387s
-Snapshot created: 851244dc
+Available commands: snapshot, restore <id>, step, tree, stats, history, storage, exit
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: bd6f6f52 in 0.0407s
-Snapshot created: bd6f6f52
+INFO:EnvManager.Base:Snapshot created: 7b0c1a92 in 0.0371s
+Snapshot created: 7b0c1a92
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 655a08f7 in 0.0376s
-Snapshot created: 655a08f7
+INFO:EnvManager.Base:Snapshot created: d969fffc in 0.0394s
+Snapshot created: d969fffc
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: ff047e26 in 0.0365s
+Snapshot created: ff047e26
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: 22c1f7db in 0.0368s
-INFO:EnvManager.Base:Container created from snapshot 22c1f7db in 0.0005s
-Stepped to new container with snapshot 22c1f7db
+INFO:EnvManager.Base:Snapshot created: fd5794fe in 0.0408s
+INFO:EnvManager.Base:Container created from snapshot fd5794fe in 0.0006s
+Stepped to new container with snapshot fd5794fe
 
 StateFork > tree
 Snapshot Tree:
- - 2834e871
-   - 851244dc
-     - bd6f6f52
-       - 655a08f7
-         - 22c1f7db (current)
+ - baac2bbd
+   - 7b0c1a92
+     - d969fffc
+       - ff047e26
+         - fd5794fe (current)
 
 
-StateFork > restore 2834e871
-INFO:EnvManager.Base:Environment restored from snapshot 2834e871 in 0.0042s
-Restored to snapshot 2834e871
+StateFork > restore baac2bbd
+INFO:EnvManager.Base:Environment restored from snapshot baac2bbd in 0.0046s
+Restored to snapshot baac2bbd
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: 47cdcd83 in 0.0372s
-INFO:EnvManager.Base:Container created from snapshot 47cdcd83 in 0.0005s
-Stepped to new container with snapshot 47cdcd83
+INFO:EnvManager.Base:Snapshot created: 4698705b in 0.0363s
+INFO:EnvManager.Base:Container created from snapshot 4698705b in 0.0008s
+Stepped to new container with snapshot 4698705b
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 248d1097 in 0.0370s
-Snapshot created: 248d1097
+INFO:EnvManager.Base:Snapshot created: 90b47a75 in 0.0400s
+Snapshot created: 90b47a75
 
 StateFork > tree
 Snapshot Tree:
- - 2834e871
-   - 851244dc
-     - bd6f6f52
-       - 655a08f7
-         - 22c1f7db
-   - 47cdcd83 (current)
-     - 248d1097 (last)
+ - baac2bbd
+   - 7b0c1a92
+     - d969fffc
+       - ff047e26
+         - fd5794fe
+   - 4698705b (current)
+     - 90b47a75 (last)
 
 
-StateFork > restore bd6f6f52
-INFO:EnvManager.Base:Environment restored from snapshot bd6f6f52 in 0.0044s
-Restored to snapshot bd6f6f52
+StateFork > restore d969fffc
+INFO:EnvManager.Base:Environment restored from snapshot d969fffc in 0.0047s
+Restored to snapshot d969fffc
 
-StateFork > restore 2834e871
-INFO:EnvManager.Base:Environment restored from snapshot 2834e871 in 0.0043s
-Restored to snapshot 2834e871
+StateFork > restore baac2bbd
+INFO:EnvManager.Base:Environment restored from snapshot baac2bbd in 0.0079s
+Restored to snapshot baac2bbd
 
 StateFork > step
-INFO:EnvManager.Base:Snapshot created: b497284d in 0.0366s
-INFO:EnvManager.Base:Container created from snapshot b497284d in 0.0004s
-Stepped to new container with snapshot b497284d
+INFO:EnvManager.Base:Snapshot created: a752b27a in 0.0399s
+INFO:EnvManager.Base:Container created from snapshot a752b27a in 0.0006s
+Stepped to new container with snapshot a752b27a
 
 StateFork > snapshot
-INFO:EnvManager.Base:Snapshot created: 8e7b7466 in 0.0392s
-Snapshot created: 8e7b7466
+INFO:EnvManager.Base:Snapshot created: f8fb94a9 in 0.0362s
+Snapshot created: f8fb94a9
 
 StateFork > history
-#1    [SNAPSHOT  ] -> 851244dc took 0.0387s
-#2    [SNAPSHOT  ] -> bd6f6f52 took 0.0407s
-#3    [SNAPSHOT  ] -> 655a08f7 took 0.0376s
-#4    [SNAPSHOT  ] -> 22c1f7db took 0.0368s
-#5    [CONTAINER ] -> 22c1f7db took 0.0005s
-#6    [RESTORE   ] -> 2834e871 took 0.0042s
-#7    [SNAPSHOT  ] -> 47cdcd83 took 0.0372s
-#8    [CONTAINER ] -> 47cdcd83 took 0.0005s
-#9    [SNAPSHOT  ] -> 248d1097 took 0.0370s
-#10   [RESTORE   ] -> bd6f6f52 took 0.0044s
-#11   [RESTORE   ] -> 2834e871 took 0.0043s
-#12   [SNAPSHOT  ] -> b497284d took 0.0366s
-#13   [CONTAINER ] -> b497284d took 0.0004s
-#14   [SNAPSHOT  ] -> 8e7b7466 took 0.0392s
+#1    [SNAPSHOT  ] -> 7b0c1a92 took 0.0371s
+#2    [SNAPSHOT  ] -> d969fffc took 0.0394s
+#3    [SNAPSHOT  ] -> ff047e26 took 0.0365s
+#4    [SNAPSHOT  ] -> fd5794fe took 0.0408s
+#5    [CONTAINER ] -> fd5794fe took 0.0006s
+#6    [RESTORE   ] -> baac2bbd took 0.0046s
+#7    [SNAPSHOT  ] -> 4698705b took 0.0363s
+#8    [CONTAINER ] -> 4698705b took 0.0008s
+#9    [SNAPSHOT  ] -> 90b47a75 took 0.0400s
+#10   [RESTORE   ] -> d969fffc took 0.0047s
+#11   [RESTORE   ] -> baac2bbd took 0.0079s
+#12   [SNAPSHOT  ] -> a752b27a took 0.0399s
+#13   [CONTAINER ] -> a752b27a took 0.0006s
+#14   [SNAPSHOT  ] -> f8fb94a9 took 0.0362s
 
+
+StateFork > storage
+[Storage Cost Summary #1]
+>> fd5794fe: 27.887 MB
+>> d969fffc: 27.883 MB
+>> 90b47a75: 27.883 MB
+>> ff047e26: 27.883 MB
+>> 4698705b: 27.506 MB
+>> a752b27a: 27.506 MB
+>> baac2bbd: 27.506 MB
+>> f8fb94a9: 27.506 MB
+>> 7b0c1a92: 27.506 MB
 
 StateFork > exit
-[SNAPSHOT  ] mean=0.037981s median=0.037387s min=0.036599s max=0.040732s
-[CONTAINER ] mean=0.000475s median=0.000462s min=0.000433s max=0.000530s
-[RESTORE   ] mean=0.004297s median=0.004276s min=0.004235s max=0.004380s
+[SNAPSHOT  ] mean=0.038284s median=0.038252s min=0.036222s max=0.040842s
+[CONTAINER ] mean=0.000686s median=0.000621s min=0.000620s max=0.000818s
+[RESTORE   ] mean=0.005752s median=0.004697s min=0.004612s max=0.007947s
+[STORAGE #1] mean=27.674 MB median=27.506 MB min=27.506 MB max=27.887 MB
 
 Cleaning up resources...
 INFO:EnvManager.Base:Cleaning up environment...
+INFO:EnvManager.CRIU:Shutting down CRIU environment...
+INFO:EnvManager.CRIU:Removing work directory /tmp/statefork_criu...
 INFO:EnvManager.Base:Cleanup complete.
