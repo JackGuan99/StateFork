@@ -21,7 +21,7 @@ class HybridAttachManager(EnvironmentManager):
         self.export_dir = export_dir
         os.makedirs(self.export_dir, exist_ok=True)
 
-        logger.info(f"Initializing PodmanHybridManager with container '{self.container_name}'")
+        logger.info(f"Initializing HybridAttachManager with container '{self.container_name}'")
 
         # Ensure container is running
         self.__ensure_container_running()
@@ -54,7 +54,7 @@ class HybridAttachManager(EnvironmentManager):
         subprocess.run([
             "podman", "container", "checkpoint", self.container_name,
             "-e", export_path, "--leave-running"
-        ], check=True)
+        ], stdout=subprocess.DEVNULL, check=True)
         elapsed = time.time() - start
 
         self.snapshots[sid] = export_path
@@ -75,7 +75,7 @@ class HybridAttachManager(EnvironmentManager):
             "podman", "container", "restore",
             "-i", export_path,
             "-n", self.container_name
-        ], check=True)
+        ], stdout=subprocess.DEVNULL, check=True)
         elapsed = time.time() - start
 
         return self.container_name, elapsed
@@ -99,11 +99,11 @@ class HybridBuildManager(HybridAttachManager):
             extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
 
         logger.info(f"Building Podman image from directory '{dockerfile_dir}'...")
-        subprocess.run(["podman", "build", "-t", image_name, dockerfile_dir], check=True)
+        subprocess.run(["podman", "build", "-t", image_name, dockerfile_dir], stdout=subprocess.DEVNULL, check=True)
 
         logger.info(f"Launching container '{container_name}' from image '{image_name}'...")
         cmd = ["podman", "run", "-d", "--rm", "--name", container_name] + extra_args + [image_name]
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
         time.sleep(2)  # wait for app to initialize
 

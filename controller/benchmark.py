@@ -30,6 +30,7 @@ class Calculator(ABC):
         self.instance_id = type(self)._counter
         self.name = name
         self.logger = logging.getLogger(f"Benchmark.{self.name}.#{self.instance_id}")
+        self.logger.info(f"Calculator initialized.")
 
     @staticmethod
     def human_readable(size_bytes: int | float) -> str:
@@ -70,6 +71,13 @@ class Calculator(ABC):
             lines.append(f">> {name}: {self.human_readable(size)}")
         return "\n".join(lines)
 
+    @property
+    def label(self) -> str:
+        """
+        Returns a label for the calculator instance.
+        """
+        return f"{self.name} #{self.instance_id}"
+
 
 class FileSizeCalculator(Calculator):
     """
@@ -78,7 +86,7 @@ class FileSizeCalculator(Calculator):
     def __init__(self, root_dir: str):
         super().__init__(name="FileSizeCalculator")
         self.root_dir = os.path.abspath(root_dir)
-        self.logger.info(f"Attached FileSizeCalculator #{self.instance_id} to directory: {self.root_dir}")
+        self.logger.debug(f"Attached FileSizeCalculator #{self.instance_id} to directory: {self.root_dir}")
 
     def __get_all_items(self) -> List[str]:
         if not os.path.exists(self.root_dir):

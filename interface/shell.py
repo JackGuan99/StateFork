@@ -76,5 +76,5 @@ if __name__ == "__main__":
     parser.add_argument("--method", choices=["docker", "criu", "podman", "hybrid"], default="docker",
                         help="Choose the environment manager backend")
     args_ns = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     main(args_ns)

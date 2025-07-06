@@ -28,7 +28,7 @@ class ImageCalculator(Calculator):
         super().__init__(name="ImageCalculator")
         self.cli = cli_command
         self.repository = repository
-        self.logger.info(f"Tracking image sizes for '{self.repository}' via `{self.cli} images --format`")
+        self.logger.debug(f"Tracking image sizes for '{self.repository}' via `{self.cli} images --format`")
 
     def _collect(self) -> List[tuple[str, int]]:
         try:
@@ -124,7 +124,7 @@ class ContainerAttachManager(EnvironmentManager):
         self.logger.debug(f"Launching container with command: {' '.join(cmd)}")
 
         start = time.time()
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
         elapsed = time.time() - start
 
         return self.container_name, elapsed
@@ -155,7 +155,7 @@ class ContainerBuildManager(ContainerAttachManager):
             extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
 
         logger.info(f"Building base {backend_name} image '{base_image}' from directory '{dockerfile_dir}'...")
-        subprocess.run([backend_cmd, "build", "-t", base_image, dockerfile_dir], check=True)
+        subprocess.run([backend_cmd, "build", "-t", base_image, dockerfile_dir], stdout=subprocess.DEVNULL, check=True)
 
         super().__init__(backend=backend, container_name="statefork_active", base_image=base_image, extra_args=extra_args)
 

@@ -31,6 +31,7 @@ class EnvironmentManager(ABC):
         self.last_snapshot_id: Optional[str] = None
         self.snapshot_graph: Dict[str, SnapshotNode] = {}  # snapshot_id -> SnapshotNode
         self.__tmp_tree_print: str = "" # Temporary variable for tree printing, note this makes it non-thread-safe
+        self.is_cleaned_up: bool = False
 
 
     def __del__(self):
@@ -38,8 +39,9 @@ class EnvironmentManager(ABC):
         Cleanup resources when the EnvironmentManager is deleted.
         This is a fallback to ensure cleanup if not explicitly called.
         """
-        logger.info("EnvironmentManager is being deleted, performing cleanup...")
-        self.cleanup()
+        if not self.is_cleaned_up:
+            logger.info("EnvironmentManager is being deleted, performing cleanup...")
+            self.cleanup()
 
 
     def snapshot(self) -> Optional[str]:
@@ -68,6 +70,7 @@ class EnvironmentManager(ABC):
             self.snapshot_graph[parent_id].children.append(snapshot_id)
         self.last_snapshot_id = snapshot_id
 
+        self.is_cleaned_up = False
         return snapshot_id
 
     @abstractmethod
@@ -98,6 +101,8 @@ class EnvironmentManager(ABC):
         # Update the Tree Graph
         self.current_snapshot_id = snapshot_id
         self.last_snapshot_id = snapshot_id
+
+        self.is_cleaned_up = False
         return True
 
     def _core_restore(self, snapshot_id: str) -> tuple[bool, float]:
@@ -131,6 +136,8 @@ class EnvironmentManager(ABC):
 
         # Update the Tree Graph
         self.current_snapshot_id = snapshot_id
+
+        self.is_cleaned_up = False
         return container_name
 
     @abstractmethod
@@ -152,6 +159,7 @@ class EnvironmentManager(ABC):
         # Core Cleanup
         self._core_cleanup()
 
+        self.is_cleaned_up = True
         logger.info("Cleanup complete.")
 
     @abstractmethod
