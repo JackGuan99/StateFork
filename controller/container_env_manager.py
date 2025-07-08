@@ -81,6 +81,16 @@ class ContainerAttachManager(EnvironmentManager):
                  base_image: str,
                  extra_args: Optional[List[str]] = None
                  ):
+        """
+        Initialize a container-based environment by attaching to an existing container.
+
+        :param backend: Backend type, either "Docker" or "Podman".
+        :param container_name: Name of the running container to attach to.
+        :param base_image: Base image to use for the environment.
+            Example: "ubuntu:latest" or "statefork:base".
+        :param extra_args: Additional command-line args passed during container startup.
+            Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+        """
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
         super().__init__(backend_name=self.BACKEND_NAME)
         self.container_name = container_name
@@ -146,6 +156,17 @@ class ContainerBuildManager(ContainerAttachManager):
                  base_image: str = None,
                  extra_args: Optional[List[str]] = None
                  ):
+        """
+        Initialize a container-based environment by building from a Dockerfile.
+
+        :param backend: Backend type, either "Docker" or "Podman".
+        :param dockerfile_dir: Path to the directory containing the Dockerfile.
+            Example: "/home/user/projects/myapp/"
+        :param base_image: Base image to use for building the container.
+            Example: "python:3.10-slim"
+        :param extra_args: Additional command-line args passed during container startup.
+            Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+        """
         backend_cmd, backend_name, logger = get_backend_tool(backend)
 
         if base_image is None:

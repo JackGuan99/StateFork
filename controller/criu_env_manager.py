@@ -21,6 +21,14 @@ class CRIUAttachManager(EnvironmentManager):
                  target_pid: int,
                  work_dir: str = "/tmp/statefork_criu"
                  ):
+        """
+        Initialize a CRIU-based environment by attaching to an existing running process.
+
+        :param target_pid: PID of the target process to attach to.
+            Example: 12345
+        :param work_dir: Directory for storing checkpoint images and related files.
+            Example: "/tmp/statefork_criu"
+        """
         super().__init__(backend_name="CRIU")
         self.work_dir = work_dir
         os.makedirs(self.work_dir, exist_ok=True)
@@ -127,6 +135,14 @@ class CRIUBuildManager(CRIUAttachManager):
                  work_dir: str = "/tmp/statefork_criu",
                  command: Optional[List[str]] = None
                  ):
+        """
+        Initialize a CRIU-based environment by launching and managing a new local process.
+
+        :param work_dir: Directory for storing checkpoint images and related files.
+            Example: "/tmp/statefork_criu"
+        :param command: Command to launch the target application process.
+            Example: ["python3", "app.py"]
+        """
         if command is None:
             command = [
                 "uvicorn", "app.api_server:app",

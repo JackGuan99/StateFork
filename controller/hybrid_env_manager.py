@@ -16,6 +16,14 @@ class HybridAttachManager(EnvironmentManager):
                  container_name: str,
                  export_dir: str = "/tmp/statefork_podman"
                  ):
+        """
+        Initialize a hybrid environment using Podman with CRIU by attaching to a running container.
+
+        :param container_name: Name of the existing container to attach to.
+            Example: "statefork_hybrid"
+        :param export_dir: Directory for storing CRIU export files (.tar.zstd).
+            Example: "/tmp/statefork_podman"
+        """
         super().__init__(backend_name="Podman+CRIU")
         self.container_name = container_name
         self.export_dir = export_dir
@@ -94,6 +102,18 @@ class HybridBuildManager(HybridAttachManager):
                  export_dir: str = "/tmp/statefork_podman",
                  extra_args: Optional[List[str]] = None
                  ):
+        """
+        Initialize a hybrid environment using Podman with CRIU by building from Dockerfile.
+
+        :param container_name: Name to assign to the container.
+            Example: "statefork_hybrid"
+        :param dockerfile_dir: Path to the directory containing the Dockerfile.
+            Example: "/home/user/projects/myapp/"
+        :param export_dir: Directory for storing CRIU export files (.tar.zstd).
+            Example: "/tmp/statefork_podman"
+        :param extra_args: Additional command-line args passed during container startup.
+            Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+        """
         image_name = "init_image"
         if extra_args is None:
             extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
