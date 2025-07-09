@@ -34,28 +34,43 @@ def parse_timeline_file(filepath: str):
 def plot_gantt_chart_txt(sections: dict, color_labels: list):
     color_map = cm.get_cmap('tab20', 20)
 
-    fig, ax = plt.subplots(figsize=(12, 0.6 * sum(len(steps) for steps in sections.values())))
+    color_legend = {cid: color_map(cid) for cid, _ in color_labels}
+    compressed_sections = {k: k.startswith("*") for k in sections.keys()}
+
+    fig, ax = plt.subplots(figsize=(12, 0.6 * sum(1 if compressed else len(steps) + 1
+                                                  for k, steps in sections.items()
+                                                  for compressed in [k.startswith("*")])))
 
     y = 0
     yticks = []
     ylabels = []
-    color_legend = {}
 
-    for section, steps in sections.items():
+    for raw_section, steps in sections.items():
+        section = raw_section.lstrip("*")  # Remove '*' prefix if present
+        is_compressed = compressed_sections[raw_section]
+
         start_time = 0
-        for name, duration, color_id in steps:
-            color = color_map(color_id)
-            ax.barh(y, duration, left=start_time, height=0.5, color=color, edgecolor='black')
-            ax.text(start_time + duration / 2, y, f"{duration:.3f}", ha='center', va='center', fontsize=8, color='black')
-
-            if color_id not in color_legend:
-                color_legend[color_id] = color
-
+        if is_compressed:
+            total_duration = sum(dur for _, dur, _ in steps)
+            for name, duration, color_id in steps:
+                color = color_legend.get(color_id, "gray")
+                ax.barh(y, duration, left=start_time, height=0.5, color=color, edgecolor='black')
+                start_time += duration
+            # Only one label for the total segment
+            ax.text(start_time / 2, y, f"{total_duration:.3f}", ha='center', va='center', fontsize=8, color='white')
             yticks.append(y)
-            ylabels.append(f"{section}: {name}")
-            start_time += duration
+            ylabels.append(f"{section} (compressed)")
             y += 1
-        y += 1
+        else:
+            for name, duration, color_id in steps:
+                color = color_legend.get(color_id, "gray")
+                ax.barh(y, duration, left=start_time, height=0.5, color=color, edgecolor='black')
+                ax.text(start_time + duration / 2, y, f"{duration:.3f}", ha='center', va='center', fontsize=8, color='black')
+                yticks.append(y)
+                ylabels.append(f"{section}: {name}")
+                start_time += duration
+                y += 1
+            y += 1  # Add spacing between sections
 
     ax.set_xlabel("Time (ms)")
     ax.set_yticks(yticks)
@@ -63,7 +78,7 @@ def plot_gantt_chart_txt(sections: dict, color_labels: list):
     ax.invert_yaxis()
     ax.set_title("Gantt Timeline of Benchmark Steps")
 
-    handles = [mpatches.Patch(color=color_legend[cid], label=f"{label}") for cid, label in color_labels]
+    handles = [mpatches.Patch(color=color_legend[cid], label=label) for cid, label in color_labels]
     ax.legend(handles=handles, loc='upper right', bbox_to_anchor=(1.15, 1.05))
 
     plt.tight_layout()
