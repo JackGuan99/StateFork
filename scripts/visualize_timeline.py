@@ -47,7 +47,7 @@ def plot_gantt_chart_txt(sections: dict, color_labels: dict):
             ax.text(start_time + 1, y, f"{total_duration:.3f}", ha='left', va='center', fontsize=8, color='black')
             yticks.append(y)
             ylabels.append(f"{section} (compressed)")
-            y += 1
+            y += 2
         else:
             for name, duration, color in steps:
                 ax.barh(y, duration, left=start_time, height=0.5, color=color, edgecolor='black')

@@ -76,7 +76,7 @@ def request_url(url: str) -> bool:
         return False
 
 
-def wait_for_ready(interval: float = 0.005, timeout: float = 5.0) -> float:
+def wait_for_ready(interval: float = 0.002, timeout: float = 5.0) -> float:
     """
     Wait for the server to be ready by repeatedly sending requests until a successful response is received or timeout occurs.
     Logging the time taken for each attempt during the wait.
