@@ -62,16 +62,16 @@ def plot_gantt_chart_txt(sections: dict, color_labels: dict):
     ax.set_yticks(yticks)
     ax.set_yticklabels(ylabels, fontsize=8)
     ax.invert_yaxis()
-    ax.set_title("Gantt Timeline of Benchmark Steps")
+    ax.set_title("Gantt Timeline of Docker Steps", fontsize=10)
 
     handles = [mpatches.Patch(color=color, label=label) for color, label in color_labels.items()]
-    ax.legend(handles=handles, loc='upper right', bbox_to_anchor=(1.15, 1.05))
+    ax.legend(handles=handles, loc='upper right')
 
     plt.tight_layout()
-    plt.savefig("gantt_timeline.png", dpi=300)
+    plt.savefig("../logs/benchmark_all/docker_timeline.png", dpi=400)
     plt.show()
 
 if __name__ == "__main__":
-    timeline_file = "timeline_data.txt"
+    timeline_file = "../logs/benchmark_all/docker_timeline_data.txt"
     sect, clabel = parse_timeline_file(timeline_file)
     plot_gantt_chart_txt(sect, clabel)
