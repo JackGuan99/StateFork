@@ -1,0 +1,53 @@
+# Timeline Data for RunID 1752109453
+# Created at UTC 2025-07-10 01:04:13
+# Duration unit is milliseconds(ms)
+>blue: SNAPSHOT
+>green: RESTORE
+>pink: NETWORK
+>purple: INTERNAL
+>orange: WAIT
+>gray: FAILURE
+[Init Requests 1]
+Req, 14.463, pink
+[Init Requests 2]
+Req, 20.184, pink
+[Init Requests 3]
+Req, 4.965, pink
+[Init Requests 4]
+Req, 12.420, pink
+[Init Requests 5]
+Req, 3.983, pink
+[Env Step 1]
+Snapshot, 75.749, blue
+Restore, 16.342, green
+[*Wait for Recovery 1]
+Try 1, 1.499, pink
+Wait, 2.000, orange
+Try 2, 2.040, pink
+Wait, 2.000, orange
+[After Recovery 1]
+ , 34.364, pink
+[Following Requests 1.2]
+Req, 2.729, pink
+[Following Requests 1.3]
+Req, 2.404, pink
+[Following Requests 1.4]
+Req, 3.319, pink
+[Following Requests 1.5]
+Req, 3.137, pink
+[Env Step 2]
+Snapshot, 50.231, blue
+Restore, 4.987, green
+[*Wait for Recovery 2]
+Try 1, 1.375, pink
+Wait, 2.000, orange
+[After Recovery 2]
+ , 26.767, pink
+[Following Requests 2.2]
+Req, 2.472, pink
+[Following Requests 2.3]
+Req, 2.293, pink
+[Following Requests 2.4]
+Req, 2.316, pink
+[Following Requests 2.5]
+Req, 2.242, pink
