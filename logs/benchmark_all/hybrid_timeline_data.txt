@@ -7,41 +7,103 @@
 >purple: INTERNAL
 >orange: WAIT
 >gray: FAILURE
+
 [Init Requests 1]
-Req, 20.903, pink
+# Req, 20.903, pink
+Network, 0.160, pink
+Core, 17.483, purple
+Network, 1.596, pink
+
 [Init Requests 2]
-Req, 6.804, pink
+# Req, 6.804, pink
+Network, 0.077, pink
+Core, 3.576, purple
+Network, 1.217, pink
+
 [Init Requests 3]
-Req, 5.874, pink
+# Req, 5.874, pink
+Network, 0.069, pink
+Core, 4.067, purple
+Network, 0.940, pink
+
 [Init Requests 4]
-Req, 6.171, pink
+# Req, 6.171, pink
+Network, 2.227, pink
+Core, 2.363, purple
+Network, 1.074, pink
+
 [Init Requests 5]
-Req, 4.885, pink
+# Req, 4.885, pink
+Network, 0.087, pink
+Core, 2.390, purple
+Network, 1.215, pink
+
 [Env Step 1]
 Snapshot, 851.119, blue
 Restore, 1509.505, green
 [*Wait for Recovery 1]
+
 [After Recovery 1]
- , 4.133, pink
+#  , 4.133, pink
+Network, 0.108, pink
+Core, 2.191, purple
+Network, 1.075, pink
+
 [Following Requests 1.2]
-Req, 3.310, pink
+# Req, 3.310, pink
+Network, 0.067, pink
+Core, 1.779, purple
+Network, 0.634, pink
+
 [Following Requests 1.3]
-Req, 3.116, pink
+# Req, 3.116, pink
+Network, 0.064, pink
+Core, 1.683, purple
+Network, 0.786, pink
+
 [Following Requests 1.4]
-Req, 3.258, pink
+# Req, 3.258, pink
+Network, 0.061, pink
+Core, 1.711, purple
+Network, 0.689, pink
+
 [Following Requests 1.5]
-Req, 2.925, pink
+# Req, 2.925, pink
+Network, 0.065, pink
+Core, 1.229, purple
+Network, 0.738, pink
+
 [Env Step 2]
 Snapshot, 858.844, blue
 Restore, 1918.986, green
 [*Wait for Recovery 2]
 [After Recovery 2]
- , 4.048, pink
+#  , 4.048, pink
+Network, 0.119, pink
+Core, 2.578, purple
+Network, 0.383, pink
+
 [Following Requests 2.2]
-Req, 3.116, pink
+# Req, 3.116, pink
+Network, 0.066, pink
+Core, 1.587, purple
+Network, 0.712, pink
+
 [Following Requests 2.3]
-Req, 2.762, pink
+# Req, 2.762, pink
+Network, 0.063, pink
+Core, 1.292, purple
+Network, 0.828, pink
+
 [Following Requests 2.4]
-Req, 2.679, pink
+# Req, 2.679, pink
+Network, 0.061, pink
+Core, 1.406, purple
+Network, 0.586, pink
+
 [Following Requests 2.5]
-Req, 2.669, pink
+# Req, 2.669, pink
+Network, 0.059, pink
+Core, 1.193, purple
+Network, 0.621, pink
+

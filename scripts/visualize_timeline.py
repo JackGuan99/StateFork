@@ -58,7 +58,7 @@ def plot_gantt_chart_txt(sections: dict, color_labels: dict):
                 y += 1
             y += 1
 
-    ax.set_xlabel("Time (s)")
+    ax.set_xlabel("Time (ms)")
     ax.set_yticks(yticks)
     ax.set_yticklabels(ylabels, fontsize=8)
     ax.invert_yaxis()
