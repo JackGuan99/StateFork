@@ -1,6 +1,21 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+"""
+This script visualizes a Gantt chart from a timeline file.
+
+The timeline syntax is defined as follows:
+- Comments start with a hash (#) and are ignored
+    # This is a comment
+- Color labels are defined with a greater-than sign (>)
+    > color_key : label
+- Sections are defined with square brackets
+    [section_name]
+- Compressed sections start with an asterisk (*), and the total duration is displayed at the end of the section.
+    [*section_name]
+- Each line within a section represents a step in the format:
+    name, duration, color_key
+"""
 
 def parse_timeline_file(filepath: str):
     sections = {}
