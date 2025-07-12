@@ -86,6 +86,9 @@ StateFork automatically logs and benchmarks the performance of:
 - Time-based operation history
 - Storage usage
 
+## ⚙️ Core Controller Design
+![Design Diagram](docs/design.drawio.png)
+
 ## 🔧 Requirements
 ### Python Environment
 - Python 3.10+
