@@ -1,0 +1,105 @@
+(.venv) alexxjk@node0:~/StateFork$ sudo python3 controller/main.py --method docker
+INFO:docker_env_manager:Building base Docker image 'statefork-app:latest'...
+[+] Building 1.4s (11/11) FINISHED                                                                                                                    docker:default
+... [omitted Docker build output] ...
+INFO:docker_env_manager:Creating initial environment from base image...
+af17875a914a358a8ba1e672466b278d7a3a4968f94245a0f9f1ec76211a919b
+INFO:base_env_manager:Container created from snapshot base in 0.3776s
+StateFork Container Manager
+Available commands: snapshot, restore <id>, step, tree, stats, history, exit
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 7d57ee49 in 0.0832s
+Snapshot created: 7d57ee49
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: af6323e9 in 0.0833s
+Snapshot created: af6323e9
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 81714c91 in 0.0881s
+Snapshot created: 81714c91
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: adac4cab in 0.0825s
+b63749c34bcd854b48e6032462f1cf32ac64ce9c8e7ec721c0f7b947bb221cac
+INFO:base_env_manager:Container created from snapshot adac4cab in 0.3578s
+Stepped to new container with snapshot adac4cab
+
+StateFork > tree
+Snapshot Tree:
+ - base
+   - 7d57ee49
+     - af6323e9
+       - 81714c91
+         - adac4cab (current)
+
+StateFork > restore base
+a40b4d5f99613b91c479c52e15b85d5eebf449d06a7376481e389e3bf8d36939
+INFO:base_env_manager:Environment restored from snapshot base in 0.7271s
+Restored to snapshot base
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: a1cb42d2 in 0.0833s
+952faae66efc55953438afa8722fc364199f3c8af63b956d7778902a5c55d514
+INFO:base_env_manager:Container created from snapshot a1cb42d2 in 0.3554s
+Stepped to new container with snapshot a1cb42d2
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 47fe20c6 in 0.0846s
+Snapshot created: 47fe20c6
+
+StateFork > tree   
+Snapshot Tree:
+ - base
+   - 7d57ee49
+     - af6323e9
+       - 81714c91
+         - adac4cab
+   - a1cb42d2 (current)
+     - 47fe20c6 (last)
+
+StateFork > restore af6323e9
+436f764b4e81e2c4b59ce8dcc5eabed932bbae3f469feb26623a7be01f77dc8c
+INFO:base_env_manager:Environment restored from snapshot af6323e9 in 0.6532s
+Restored to snapshot af6323e9
+
+StateFork > restore base
+82a12d959d053fcb58913e123133b17ca96cb8471a2b5a285b8de3c433f87198
+INFO:base_env_manager:Environment restored from snapshot base in 0.6704s
+Restored to snapshot base
+
+StateFork > step
+INFO:base_env_manager:Snapshot created: 583236bc in 0.0863s
+4f71e9f8bacee01701ccc22a13c63a15095e15b4f673db80c931b3d2afab3731
+INFO:base_env_manager:Container created from snapshot 583236bc in 0.3462s
+Stepped to new container with snapshot 583236bc
+
+StateFork > snapshot
+INFO:base_env_manager:Snapshot created: 1c8186c7 in 0.0833s
+Snapshot created: 1c8186c7
+
+StateFork > history
+#1    [CONTAINER ] -> base     took 0.3776s
+#2    [SNAPSHOT  ] -> 7d57ee49 took 0.0832s
+#3    [SNAPSHOT  ] -> af6323e9 took 0.0833s
+#4    [SNAPSHOT  ] -> 81714c91 took 0.0881s
+#5    [SNAPSHOT  ] -> adac4cab took 0.0825s
+#6    [CONTAINER ] -> adac4cab took 0.3578s
+#7    [RESTORE   ] -> base     took 0.7271s
+#8    [SNAPSHOT  ] -> a1cb42d2 took 0.0833s
+#9    [CONTAINER ] -> a1cb42d2 took 0.3554s
+#10   [SNAPSHOT  ] -> 47fe20c6 took 0.0846s
+#11   [RESTORE   ] -> af6323e9 took 0.6532s
+#12   [RESTORE   ] -> base     took 0.6704s
+#13   [SNAPSHOT  ] -> 583236bc took 0.0863s
+#14   [CONTAINER ] -> 583236bc took 0.3462s
+#15   [SNAPSHOT  ] -> 1c8186c7 took 0.0833s
+
+StateFork > exit
+[CONTAINER ] mean=0.359279s median=0.356644s min=0.346213s max=0.377616s
+[SNAPSHOT  ] mean=0.084334s median=0.083330s min=0.082511s max=0.088140s
+[RESTORE   ] mean=0.683560s median=0.670426s min=0.653166s max=0.727089s
+Cleaning up resources...
+INFO:base_env_manager:Cleaning up environment...
+INFO:base_env_manager:Cleanup complete.

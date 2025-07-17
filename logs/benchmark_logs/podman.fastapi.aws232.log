@@ -1,0 +1,118 @@
+root@ip-172-31-19-232:/home/ubuntu/StateFork# python3 -m interface.shell --method podman
+INFO:EnvManager.Podman:Building base Podman image 'statefork_64b6:base' from directory '.'...
+INFO:EnvManager.Podman:Recognized base image prefix: statefork_64b6
+INFO:Benchmark.ImageCalculator.#1:Calculator initialized.
+INFO:EnvManager.Podman:Creating initial environment from base image...
+==========================================
+StateFork Container Manager - Interactive Shell
+Using ContainerBuildManager with Podman backend
+
+Available commands: snapshot, restore <id>, step, tree, stats, history, storage, exit
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 371c60c3 in 0.2407s
+Snapshot created: 371c60c3
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: c491914c in 0.1384s
+Snapshot created: c491914c
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 91393a1b in 0.1390s
+Snapshot created: 91393a1b
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 51bcbbde in 0.1413s
+INFO:EnvManager.Base:Container created from snapshot 51bcbbde in 0.3530s
+Stepped to new container with snapshot 51bcbbde
+
+StateFork > tree
+Snapshot Tree:
+ - base
+   - 371c60c3
+     - c491914c
+       - 91393a1b
+         - 51bcbbde (current)
+
+
+StateFork > restore base
+INFO:EnvManager.Base:Environment restored from snapshot base in 0.8874s
+Restored to snapshot base
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 5e74efb2 in 0.2395s
+INFO:EnvManager.Base:Container created from snapshot 5e74efb2 in 0.3410s
+Stepped to new container with snapshot 5e74efb2
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 9cbe826a in 0.2406s
+Snapshot created: 9cbe826a
+
+StateFork > tree
+Snapshot Tree:
+ - base
+   - 371c60c3
+     - c491914c
+       - 91393a1b
+         - 51bcbbde
+   - 5e74efb2 (current)
+     - 9cbe826a (last)
+
+
+StateFork > restore c491914c
+INFO:EnvManager.Base:Environment restored from snapshot c491914c in 0.8878s
+Restored to snapshot c491914c
+
+StateFork > restore base
+INFO:EnvManager.Base:Environment restored from snapshot base in 1.1910s
+Restored to snapshot base
+
+StateFork > step
+INFO:EnvManager.Base:Snapshot created: 89338212 in 0.2466s
+INFO:EnvManager.Base:Container created from snapshot 89338212 in 0.4447s
+Stepped to new container with snapshot 89338212
+
+StateFork > snapshot
+INFO:EnvManager.Base:Snapshot created: 0701fd6c in 0.2418s
+Snapshot created: 0701fd6c
+
+StateFork > history
+#1    [SNAPSHOT  ] -> 371c60c3 took 0.2407s
+#2    [SNAPSHOT  ] -> c491914c took 0.1384s
+#3    [SNAPSHOT  ] -> 91393a1b took 0.1390s
+#4    [SNAPSHOT  ] -> 51bcbbde took 0.1413s
+#5    [CONTAINER ] -> 51bcbbde took 0.3530s
+#6    [RESTORE   ] -> base     took 0.8874s
+#7    [SNAPSHOT  ] -> 5e74efb2 took 0.2395s
+#8    [CONTAINER ] -> 5e74efb2 took 0.3410s
+#9    [SNAPSHOT  ] -> 9cbe826a took 0.2406s
+#10   [RESTORE   ] -> c491914c took 0.8878s
+#11   [RESTORE   ] -> base     took 1.1910s
+#12   [SNAPSHOT  ] -> 89338212 took 0.2466s
+#13   [CONTAINER ] -> 89338212 took 0.4447s
+#14   [SNAPSHOT  ] -> 0701fd6c took 0.2418s
+
+
+StateFork > storage
+[Storage Cost Summary #1]
+>> localhost/statefork_64b6:0701fd6c: 163.000 MB
+>> localhost/statefork_64b6:89338212: 163.000 MB
+>> localhost/statefork_64b6:9cbe826a: 163.000 MB
+>> localhost/statefork_64b6:5e74efb2: 163.000 MB
+>> localhost/statefork_64b6:51bcbbde: 163.000 MB
+>> localhost/statefork_64b6:91393a1b: 163.000 MB
+>> localhost/statefork_64b6:c491914c: 163.000 MB
+>> localhost/statefork_64b6:371c60c3: 163.000 MB
+>> localhost/statefork_64b6:base: 163.000 MB
+
+StateFork > exit
+[SNAPSHOT  ] mean=0.203485s median=0.240041s min=0.138448s max=0.246568s
+[CONTAINER ] mean=0.379560s median=0.352969s min=0.341012s max=0.444700s
+[RESTORE   ] mean=0.988725s median=0.887801s min=0.887381s max=1.190994s
+[STORAGE #1] mean=163.000 MB median=163.000 MB min=163.000 MB max=163.000 MB
+
+Cleaning up resources...
+INFO:EnvManager.Base:Cleaning up environment...
+INFO:EnvManager.Podman:Cleaning up Podman container 'statefork_active'
+INFO:EnvManager.Podman:Cleaning up Podman images...
+INFO:EnvManager.Base:Cleanup complete.

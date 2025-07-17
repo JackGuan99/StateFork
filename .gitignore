@@ -194,4 +194,4 @@ cython_debug/
 .cursorindexingignore
 
 # Alex Logs
-!logs/*.log
+!logs/*/*.log
