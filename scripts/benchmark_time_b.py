@@ -51,7 +51,7 @@ def test_time_b(env: EnvironmentManager) -> float:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Time-B Benchmark Script")
-    parser.add_argument("--method", choices=["docker", "criu", "podman"],
+    parser.add_argument("--method", choices=["docker", "criu", "podman", "hybrid"],
                         help="Choose the environment manager backend")
     args = parser.parse_args()
 
@@ -60,9 +60,11 @@ if __name__ == "__main__":
     if args.method == "docker":
         manager = create_env_manager("docker_build")
     elif args.method == "criu":
-        manager = create_env_manager("criu_launch")
+        manager = create_env_manager("criu_build")
     elif args.method == "podman":
         manager = create_env_manager("podman_build")
+    elif args.method == "hybrid":
+        manager = create_env_manager("hybrid_build")
     else:
         raise ValueError(f"Unsupported command method: {args.method}")
 
