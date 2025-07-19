@@ -56,26 +56,41 @@ logger.info(f"System reported memory usage: {ls}")
 ############ Filesystem Writing for Testing ############
 
 FILE_SIZE_MB = int(os.getenv("FILE_SIZE_MB", "-1"))  # default None
-FILE_PATH = f"/app/testfile_{FILE_SIZE_MB}.bin"
+CHUNK_SIZE_MB = 128  # Max per file to avoid tar write-too-long issues
+FILE_DIR = "/app/files"
 
 if FILE_SIZE_MB > 0:
-    os.makedirs(os.path.dirname(FILE_PATH), exist_ok=True)
-    logger.info(f"Creating dummy file of size {FILE_SIZE_MB} MB at {FILE_PATH}...")
-    with open(FILE_PATH, "wb") as f:
-        for _ in range(FILE_SIZE_MB):
-            f.write(os.urandom(1024 * 1024))  # Write 1MB at a time
+    os.makedirs(FILE_DIR, exist_ok=True)
+    logger.info(f"Creating dummy files totaling {FILE_SIZE_MB} MB in {FILE_DIR}...")
+
+    num_chunks = (FILE_SIZE_MB + CHUNK_SIZE_MB - 1) // CHUNK_SIZE_MB
+    bytes_remaining = FILE_SIZE_MB * 1024 * 1024
+
+    for i in range(num_chunks):
+        chunk_path = os.path.join(FILE_DIR, f"chunk_{i:03d}.bin")
+        this_chunk_size = min(CHUNK_SIZE_MB * 1024 * 1024, bytes_remaining)
+        logger.info(f"Writing {this_chunk_size / (1024*1024):.2f}MB to {chunk_path}")
+
+        with open(chunk_path, "wb") as f:
+            for _ in range(this_chunk_size // (1024 * 1024)):
+                f.write(os.urandom(1024 * 1024))  # Write 1MB at a time
+
+        bytes_remaining -= this_chunk_size
 
 def log_file_info() -> int:
     """
-    Logs the size of the dummy file and returns the size in bytes.
+    Logs the size of all generated chunk files and returns the total size in bytes.
     """
     if FILE_SIZE_MB <= 0:
         return 0
 
-    size = os.path.getsize(FILE_PATH)
-    logger.info(f"[File Size Report] File: {FILE_PATH} >> {size / (1024*1024):.2f}MB\n")
+    total_size = 0
+    for fname in os.listdir(FILE_DIR):
+        path = os.path.join(FILE_DIR, fname)
+        total_size += os.path.getsize(path)
 
-    return size
+    logger.info(f"[File Size Report] Total size of generated chunks: {total_size / (1024*1024):.2f}MB\n")
+    return total_size
 
 lf = log_file_info()
 logger.info(f"System reported internal file size: {lf / (1024*1024):.2f}MB")
