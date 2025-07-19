@@ -10,13 +10,13 @@ from app.kv_store import KVStore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.FastAPI")
 
 # Set up logging to file
 log_file = "/tmp/fastapi_stats.txt"
 file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s - %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
@@ -45,10 +45,8 @@ def log_memory_usage() -> dict:
                 key, val = line.strip().split(":", 1)
                 stats[key] = val.strip()
 
-    with open(log_file, "a") as out:
-        out.write(f"[Memory Usage Report - {time.strftime('%Y-%m-%d %H:%M:%S')}]\n")
-        for key in ("VmSize", "VmRSS", "VmPeak"):
-            out.write(f"{key}: {stats.get(key, 'N/A')}\n")
+    for key in ("VmSize", "VmRSS", "VmPeak"):
+        logger.info(f"[Memory Usage Report] {key}: {stats.get(key, 'N/A')}\n")
 
     return stats
 
@@ -75,9 +73,7 @@ def log_file_info() -> int:
         return 0
 
     size = os.path.getsize(FILE_PATH)
-    with open(log_file, "a") as out:
-        out.write(f"[File Size Report - {time.strftime('%Y-%m-%d %H:%M:%S')}]\n")
-        out.write(f"Wrote file: {FILE_PATH}\nSize: {size / (1024*1024):.2f}MB\n")
+    logger.info(f"[File Size Report] File: {FILE_PATH} >> {size / (1024*1024):.2f}MB\n")
 
     return size
 
