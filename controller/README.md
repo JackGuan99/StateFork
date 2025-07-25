@@ -1,6 +1,6 @@
-# StateFork Controller 
+# 🌟 StateFork Controller 
 
-## Developer Guide
+## 🔧 Developer Guide
 
 ### Design Overview
 1. Template Method Pattern
@@ -19,9 +19,9 @@
 These patterns help keep the codebase modular, extensible, and easy to maintain for future development.
 
 
-## User Guide
+## 🧱 User Guide
 
-### Env Manager
+### ⚙️ Env Manager
 All the controller classes are subclasses of `EnvironmentManager`, which provides a unified interface for managing
 environments, snapshots, and containers.  
 
@@ -32,7 +32,7 @@ They are:
 - `.create_env_from_snapshot(snapshot_id: str)`: Create a container from a snapshot and return the name for the container.
 - `.cleanup()`: Clean up all containers and snapshots created by the controller instance.
 
-### Controller Helper
+### 🧩 Controller Helper
 All `EnvironmentManager` subclass instance also provides a series of helper methods to assist with common tasks.
 
 The usage of these controllers is well-documented in the `EnvironmentManager` base class, utilizing IDE-supported docstrings.
@@ -42,7 +42,7 @@ They are:
 - `.list_snapshots()`: List all snapshots created by the controller instance.
 - `.print_snapshot_tree()`: Print a tree view of all snapshots created by the controller instance. [ Non-thread-safe ]
 
-### Benchmark
+### 🧪 Benchmark
 You can enter the benchmark interface through the `.stats` attribute of any `EnvironmentManager` subclass instance.
 
 #### Programmatic Usage
@@ -69,7 +69,7 @@ BenchmarkResult(
             count=3, total=2048, mean=1024, median=1024, min=512, max=1536, unit='bytes'
         )
     }
-    )
+)
 ```
 
 #### Formatted String Usage
