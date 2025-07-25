@@ -24,6 +24,7 @@ StateFork/
   │   └── ...
   ├── controller/            # Core controller package
   │   ├── __init__.py
+  │   ├── README.md
   │   ├── base_env_manager.py
   │   ├── benchmark.py
   │   ├── criu_env_manager.py
@@ -117,5 +118,7 @@ pip install -r requirements.txt
 - Manually set the OCI runtime in `/usr/share/containers/containers.conf` to use **runc** instead of the default **crun**.
 
 ---
+For core controller usage, see the `controller/README.md` file.  
 For interface usage, see the `interface/README.md` file.
+
 > Want to contribute? File issues or PRs in the GitHub repo!
