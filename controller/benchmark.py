@@ -224,7 +224,7 @@ class BenchmarkStats:
                 median=statistics.median(times),
                 min=min(times),
                 max=max(times),
-                unit="milliseconds"
+                unit="seconds"
             )
 
         size_data = {}
