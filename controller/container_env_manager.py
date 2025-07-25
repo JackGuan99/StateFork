@@ -106,7 +106,7 @@ class ContainerAttachManager(EnvironmentManager):
 
         # Attach the ImageCalculator to track image sizes
         ic = ImageCalculator(self.BACKEND_CMD, self.image_prefix)
-        self.stats.attach_size_calculator(ic)
+        self._stats.attach_size_calculator(ic)
 
 
     def _core_snapshot(self) -> tuple[Optional[str], float]:

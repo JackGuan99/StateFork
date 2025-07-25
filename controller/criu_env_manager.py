@@ -49,7 +49,7 @@ class CRIUAttachManager(EnvironmentManager):
         self.last_snapshot_id = sid
 
         # Attach the FileSizeCalculator to the work directory
-        self.stats.attach_size_calculator(FileSizeCalculator(self.work_dir))
+        self._stats.attach_size_calculator(FileSizeCalculator(self.work_dir))
 
 
     # Benchmarking Notes: This method causes a delay of {soft_timeout + hard_timeout} seconds!!!

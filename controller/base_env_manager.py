@@ -26,7 +26,7 @@ class EnvironmentManager(ABC):
     def __init__(self, backend_name: str = "Base"):
         self.backend_name = backend_name
         self.snapshots: Dict[str, str] = {}  # snapshot_id -> image_id
-        self.stats = BenchmarkStats()
+        self._stats = BenchmarkStats()
         self.current_snapshot_id: Optional[str] = None
         self.last_snapshot_id: Optional[str] = None
         self.snapshot_graph: Dict[str, SnapshotNode] = {}  # snapshot_id -> SnapshotNode
@@ -60,7 +60,7 @@ class EnvironmentManager(ABC):
             return None
 
         # Logging
-        self.stats.add_entry("snapshot", snapshot_id, elapsed)
+        self._stats.add_entry("snapshot", snapshot_id, elapsed)
         logger.info(f"Snapshot created: {snapshot_id} in {elapsed:.4f}s")
 
         # Update the Tree Graph
@@ -95,7 +95,7 @@ class EnvironmentManager(ABC):
             logger.error(f"Failed to restore environment from snapshot {snapshot_id}.")
             return False
 
-        self.stats.add_entry("restore", snapshot_id, elapsed)
+        self._stats.add_entry("restore", snapshot_id, elapsed)
         logger.info(f"Environment restored from snapshot {snapshot_id} in {elapsed:.4f}s")
 
         # Update the Tree Graph
@@ -130,7 +130,7 @@ class EnvironmentManager(ABC):
             logger.warning(f"Failed to create environment from snapshot {snapshot_id}.")
             return None
 
-        self.stats.add_entry("container", snapshot_id, elapsed)
+        self._stats.add_entry("container", snapshot_id, elapsed)
 
         logger.info(f"Container created from snapshot {snapshot_id} in {elapsed:.4f}s")
 
@@ -218,3 +218,10 @@ class EnvironmentManager(ABC):
         Get the name of the backend being used.
         """
         return self.backend_name
+
+    @property
+    def stats(self) -> BenchmarkStats:
+        """
+        Get the benchmark component of the environment manager.
+        """
+        return self._stats

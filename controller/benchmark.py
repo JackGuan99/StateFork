@@ -5,18 +5,21 @@ import subprocess
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict
 
 
 @dataclass
-class BenchmarkEntry:
+class Statistics:
     """
-    Represents a single benchmark entry with operation details.
+    Represents a collection of statistics for a benchmark operation.
     """
-    sequence: int
-    operation: str
-    target_id: str
-    elapsed_time: float
+    count: int
+    total: float
+    mean: float
+    median: float
+    min: float
+    max: float
+    unit: str = "unknown"
 
 
 class Calculator(ABC):
@@ -59,6 +62,18 @@ class Calculator(ABC):
             f"median={self.human_readable(statistics.median(sizes))} "
             f"min={self.human_readable(min(sizes))} "
             f"max={self.human_readable(max(sizes))}\n"
+        )
+
+    def statistics(self) -> Statistics:
+        sizes = [size for _, size in self._collect()]
+        return Statistics(
+            count=len(sizes),
+            total=sum(sizes),
+            mean=statistics.mean(sizes) if sizes else 0,
+            median=statistics.median(sizes) if sizes else 0,
+            min=min(sizes) if sizes else 0,
+            max=max(sizes) if sizes else 0,
+            unit="bytes"
         )
 
     def details(self) -> str:
@@ -119,6 +134,24 @@ class FileSizeCalculator(Calculator):
 
 
 @dataclass
+class BenchmarkResult:
+    """
+    Represents the result of a benchmark, containing time and size statistics.
+    """
+    time: Dict[str, Statistics]
+    size: Dict[str, Statistics]
+
+@dataclass
+class BenchmarkEntry:
+    """
+    Represents a single benchmark entry with operation details.
+    """
+    sequence: int
+    operation: str
+    target_id: str
+    elapsed_time: float
+
+@dataclass
 class BenchmarkStats:
     sequence_counter: int = 0
     log: List[BenchmarkEntry] = field(default_factory=list)
@@ -133,11 +166,14 @@ class BenchmarkStats:
 
     def attach_size_calculator(self, cal: Calculator) -> None:
         """
-        Attach a size calculator to the benchmark stats.
+        Attach a size calculator to the benchmark _stats.
         """
         self.size_calculators.append(cal)
 
     def print_stats(self) -> str:
+        """
+        Returns a formatted string of the benchmark statistics.
+        """
         stats = defaultdict(list)
         result = ""
         for entry in self.log:
@@ -152,14 +188,47 @@ class BenchmarkStats:
             result += sc.summary()
         return result
 
-    def print_history(self) -> None:
+    def print_history(self) -> str:
+        """
+        Returns a formatted string of the benchmark history.
+        """
         result = ""
         for entry in self.log:
             result += f"#{entry.sequence:<4d} [{entry.operation.upper():<10}] -> {entry.target_id:<8} took {entry.elapsed_time:.4f}s\n"
         return result
 
     def print_size_details(self) -> str:
+        """
+        Returns a formatted string of size details from all attached calculators.
+        """
         result = ""
         for sc in self.size_calculators:
             result += sc.details() + "\n"
         return result.strip() if result else "No size details available."
+
+    def get_all_statistics(self) -> BenchmarkResult:
+        """
+        Collects all statistics from the benchmark log and size calculators.
+        :return: BenchmarkResult containing lists of time and size statistics.
+        """
+        op_stats = defaultdict(list)
+        for entry in self.log:
+            op_stats[entry.operation].append(entry.elapsed_time)
+
+        time_data = {}
+        for op, times in op_stats.items():
+            time_data[op] = Statistics(
+                count=len(times),
+                total=sum(times),
+                mean=statistics.mean(times),
+                median=statistics.median(times),
+                min=min(times),
+                max=max(times),
+                unit="milliseconds"
+            )
+
+        size_data = {}
+        for sc in self.size_calculators:
+            size_data[sc.label] = sc.statistics()
+
+        return BenchmarkResult(time=time_data, size=size_data)

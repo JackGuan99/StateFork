@@ -45,7 +45,7 @@ class HybridAttachManager(EnvironmentManager):
         self.last_snapshot_id = sid
 
         # Attach the FileSizeCalculator to the export directory
-        self.stats.attach_size_calculator(FileSizeCalculator(self.export_dir))
+        self._stats.attach_size_calculator(FileSizeCalculator(self.export_dir))
 
 
     def __ensure_container_running(self):
