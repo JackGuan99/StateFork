@@ -2,7 +2,6 @@ import argparse
 import logging
 
 from controller import create_env_manager
-from controller.ckptlite_env_manager import CheckpointLiteAttachManager
 
 def main(args):
     available_commands = ["snapshot", "restore <id>", "step", "tree", "stats", "history", "storage", "exit"]
@@ -16,7 +15,9 @@ def main(args):
     elif args.method == "hybrid":
         manager = create_env_manager("hybrid_build")
     elif args.method == "ckpt":
-        manager = CheckpointLiteAttachManager(target_pid=args.target_pid, session_id=args.session_id)
+        if args.target_pid is None or args.session_id is None:
+            raise ValueError("For CheckpointLite, --target-pid and --session-id must be provided.")
+        manager = create_env_manager("ckptlite_attach", target_pid=args.target_pid, session_id=args.session_id)
     else:
         raise ValueError(f"Unsupported command method: {args.method}")
 

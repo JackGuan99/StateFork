@@ -16,7 +16,7 @@ class CheckpointLiteAttachManager(EnvironmentManager):
                  target_pid: int,
                  session_id: str
                  ):
-        super().__init__(backend_name="CheckpointLite")
+        super().__init__(backend_name="Checkpoint-lite")
         self.session_id = session_id
         self.target_pid = target_pid
 
