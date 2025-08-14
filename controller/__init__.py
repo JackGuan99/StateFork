@@ -2,6 +2,7 @@ from .base_env_manager import EnvironmentManager
 from .container_env_manager import ContainerAttachManager, ContainerBuildManager
 from .criu_env_manager import CRIUAttachManager, CRIUBuildManager
 from .hybrid_env_manager import HybridAttachManager, HybridBuildManager
+from .ckptlite_env_manager import CheckpointLiteAttachManager
 from .benchmark import BenchmarkStats, BenchmarkResult, Statistics
 
 from typing import Literal
@@ -10,7 +11,8 @@ EnvType = Literal[
     "criu_build", "criu_attach",
     "docker_build", "docker_attach",
     "podman_build", "podman_attach",
-    "hybrid_build", "hybrid_attach"
+    "hybrid_build", "hybrid_attach",
+    "ckptlite_attach"
 ]
 
 """
@@ -66,6 +68,11 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
         return HybridAttachManager(
             container_name=kwargs["container_name"],
             export_dir=kwargs.get("export_dir", "/tmp/statefork_podman")
+        )
+    elif method == "ckptlite_attach":
+        return CheckpointLiteAttachManager(
+            target_pid=kwargs["target_pid"],
+            session_id=kwargs["session_id"]
         )
     else:
         raise ValueError(f"Unknown method: {method}")
