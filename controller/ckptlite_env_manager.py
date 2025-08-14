@@ -84,20 +84,12 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
     """
     def __init__(self,
                  init_dir: Optional[str] = None,
-                 command: Optional[List[str]] = None
+                 command: Optional[List[str] | str] = "default"
                  ):
         if init_dir is None:
             target_dir = os.getcwd()
         else:
             target_dir = os.path.abspath(init_dir)
-
-        if command is None:
-            command = [
-                "uvicorn", "app.api_server:app",
-                "--host", "127.0.0.1",
-                "--port", "8000",
-                "--no-access-log"
-            ]
 
         logger.info("Creating a new Checkpoint-lite session...")
         init_process = subprocess.run(
@@ -110,19 +102,38 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
 
         output = init_process.stdout.strip()
         try:
-            sid, work_dir = output.split(",", 1)
+            sid, self._work_dir = output.split(",", 1)
         except ValueError:
             raise RuntimeError(f"Unexpected output format: {output}")
 
-        logger.info(f"New session {self.session_id} with work directory {work_dir} created.")
+        logger.info(f"New session {sid} with work directory '{self._work_dir}' created.")
+
+        if command is None:
+            logger.info(f"User skipped the APP launch.")
+            super().__init__(target_pid=-1, session_id=sid)
+            return
+
+        if command == "default":
+            command = [
+                "uvicorn", "app.api_server:app",
+                "--host", "127.0.0.1",
+                "--port", "8000",
+                "--no-access-log"
+            ]
+        elif isinstance(command, str):
+            command = command.split()
 
         logger.info(f"Starting initial APP...")
         proc = subprocess.Popen(
             command,
-            cwd=work_dir,
+            cwd=self._work_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         time.sleep(2)  # wait for app to initialize
 
         super().__init__(target_pid=proc.pid, session_id=sid)
+
+    @property
+    def work_dir(self) -> str:
+        return self._work_dir
