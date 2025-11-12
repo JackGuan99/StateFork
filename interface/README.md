@@ -16,7 +16,7 @@ Currently supported methods:
 ### 2. Inside the Interactive Shell
 After launching the shell with the desired method, you will see a prompt similar to this:
 ```
-StateFork Container Manager
+StateFork Container Manager - Interactive Shell
 Commands: snapshot, restore <id>, step, tree, stats, history, storage, exit
 
 StateFork > _
@@ -29,6 +29,7 @@ See the sample run screenshot below.
 | snapshot	     | Take a snapshot of the current state                     |
 | restore {id}	 | Roll back to a given snapshot ID                         |
 | step	         | Snapshot and restore immediately to simulate progression |
+| cmd {command} | Execute a shell command inside the managed environment   |
 | tree	         | Show snapshot tree structure                             |
 | stats	        | Show benchmarking results                                |
 | history	      | Show operation history                                   |

@@ -4,7 +4,7 @@ import logging
 from controller import create_env_manager
 
 def main(args):
-    available_commands = ["snapshot", "restore <id>", "step", "tree", "stats", "history", "storage", "exit"]
+    available_commands = ["snapshot", "restore <id>", "step", "cmd <command>", "tree", "stats", "history", "storage", "exit"]
 
     if args.method == "docker":
         manager = create_env_manager("docker_build")
@@ -50,6 +50,22 @@ def main(args):
                 print("Failed to create new container from snapshot.")
             else:
                 print(f"Stepped to new container with snapshot {sid}")
+
+        elif cmd.startswith("cmd"):
+            _, _, command_text = cmd.partition(" ")
+            if not command_text:
+                print("Usage: cmd <command>")
+                continue
+
+            rc, out, err = manager.exec_command(command_text)
+
+            print(f"Return code: {rc}")
+            if out:
+                print("--- stdout ---")
+                print(out)
+            if err:
+                print("--- stderr ---")
+                print(err)
 
         elif cmd == "tree":
             print(manager.print_snapshot_tree())
