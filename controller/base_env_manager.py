@@ -170,6 +170,37 @@ class EnvironmentManager(ABC):
         """
         pass
 
+    def exec_command(self, command: List[str] | str, timeout: Optional[float] = None) -> tuple[int, str, str]:
+        """
+        Execute a command inside the managed environment and return (return code, stdout, stderr).
+        - `command` may be a list of args or a raw shell string.
+        - `timeout` in seconds (optional).
+        """
+        start = time.time()
+
+        try:
+            returncode, stdout, stderr = self._core_exec(command=command, timeout=timeout)
+        except Exception as e:
+            elapsed = time.time() - start
+            self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
+            logger.error(f"Execution failed: {e}")
+            return -1, "", str(e)
+
+        elapsed = time.time() - start
+        self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
+        logger.info(f"Exec finished (rc={returncode}) in {elapsed:.4f}s")
+        return returncode, stdout, stderr
+
+    def _core_exec(self, command: List[str] | str, timeout: Optional[float]) -> tuple[int, str, str]:
+        """
+        Backend-specific execution primitive.
+        Must return a tuple (returncode, stdout, stderr).
+        - `command` is either a list of args or a raw string, as passed to `exec_command`.
+        - `timeout` is optional.
+        """
+        logger.warning(f"_core_exec not implemented in {self.backend_name} backend.")
+        return -1, "", "Not implemented."
+
     def list_snapshots(self) -> List[str]:
         """
         List all available snapshots.

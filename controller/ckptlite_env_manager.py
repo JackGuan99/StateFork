@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 import time
 import uuid
@@ -77,6 +78,38 @@ class CheckpointLiteAttachManager(EnvironmentManager):
         except subprocess.CalledProcessError as e:
             logger.error(f"CheckpointLite force cleanup failed: {e}")
             return
+
+    def _core_exec(self, command: List[str] | str, timeout: Optional[float]) -> tuple[int, str, str]:
+        if not self.session_id:
+            return -1, "", "No session_id available"
+
+        # Convert command into a single shell string
+        if isinstance(command, str):
+            cmd_str = command
+        else:
+            cmd_str = shlex.join(command)
+
+        # Execute `command` via `./checkpoint-lite exec <session_id> '<command>'`.
+        exec_args = ["./checkpoint-lite", "exec", self.session_id, cmd_str]
+
+        try:
+            proc = subprocess.run(
+                exec_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=timeout,
+                check=False
+            )
+            return proc.returncode, proc.stdout, proc.stderr
+        except subprocess.TimeoutExpired as e:
+            out = e.stdout or ""
+            err = (e.stderr or "") + f"\n[timeout after {timeout}s]"
+            logger.error(f"CheckpointLite exec timeout: {e}")
+            return -1, out, err
+        except Exception as e:
+            logger.error(f"CheckpointLite exec failed: {e}")
+            return -1, "", str(e)
 
 class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
     """
