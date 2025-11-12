@@ -57,7 +57,7 @@ logger.info(f"System reported memory usage: {ls}")
 
 FILE_SIZE_MB = int(os.getenv("FILE_SIZE_MB", "-1"))  # default None
 CHUNK_SIZE_MB = 128  # Max per file to avoid tar write-too-long issues
-FILE_DIR = "/app/files"
+FILE_DIR = "./app/files"
 
 if FILE_SIZE_MB > 0:
     os.makedirs(FILE_DIR, exist_ok=True)

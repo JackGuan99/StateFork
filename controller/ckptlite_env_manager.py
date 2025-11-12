@@ -83,14 +83,14 @@ class CheckpointLiteAttachManager(EnvironmentManager):
         if not self.session_id:
             return -1, "", "No session_id available"
 
-        # Convert command into a single shell string
+        # Convert command into a sequence of arguments (checkpoint-lite expects args list)
         if isinstance(command, str):
-            cmd_str = command
+            cmd_args = shlex.split(command)
         else:
-            cmd_str = shlex.join(command)
+            cmd_args = list(command)
 
-        # Execute `command` via `./checkpoint-lite exec <session_id> '<command>'`.
-        exec_args = ["./checkpoint-lite", "exec", self.session_id, cmd_str]
+        # Execute `command` via `./checkpoint-lite exec <session_id> <args...>`.
+        exec_args = ["./checkpoint-lite", "exec", self.session_id] + cmd_args
 
         try:
             proc = subprocess.run(
