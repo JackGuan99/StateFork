@@ -52,7 +52,7 @@ class CkptCalculator(Calculator):
         data = []
         for item in items:
             size = self.__get_size(item)
-            if size > 0:
+            if size >= 0:
                 parts = os.path.normpath(item).split(os.sep)
                 name = os.path.join(parts[-2], parts[-1])
                 data.append((name, size))
@@ -188,36 +188,36 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
 
         logger.info(f"New session {sid} with work directory '{self._work_dir}' created.")
 
+        proc_pid = -1
+        if command is None:
+            logger.info(f"User skipped the APP launch.")
+        else:
+            if command == "default":
+                command = [
+                    "uvicorn", "app.api_server:app",
+                    "--host", "127.0.0.1",
+                    "--port", "8000",
+                    "--no-access-log"
+                ]
+            elif isinstance(command, str):
+                command = command.split()
+
+            logger.info(f"Starting initial APP...")
+            proc = subprocess.Popen(
+                command,
+                cwd=self._work_dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            time.sleep(5)  # wait for app to initialize
+            proc_pid = proc.pid
+
+        super().__init__(target_pid=proc_pid, session_id=sid)
+
         # Attach the new CkptCalculator to this session
         base_dir = os.path.join(self._work_dir, "../")
         self._stats.attach_size_calculator(CkptCalculator(base_dir, "upper", name="FILESYSTEM"))
         self._stats.attach_size_calculator(CkptCalculator(base_dir, "criu", name="MEMORY"))
-
-        if command is None:
-            logger.info(f"User skipped the APP launch.")
-            super().__init__(target_pid=-1, session_id=sid)
-            return
-
-        if command == "default":
-            command = [
-                "uvicorn", "app.api_server:app",
-                "--host", "127.0.0.1",
-                "--port", "8000",
-                "--no-access-log"
-            ]
-        elif isinstance(command, str):
-            command = command.split()
-
-        logger.info(f"Starting initial APP...")
-        proc = subprocess.Popen(
-            command,
-            cwd=self._work_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        time.sleep(5)  # wait for app to initialize
-
-        super().__init__(target_pid=proc.pid, session_id=sid)
 
     @property
     def work_dir(self) -> str:
