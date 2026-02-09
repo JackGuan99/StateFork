@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from .benchmark import BenchmarkStats
+from decider.decider import Decider, RandomDecider
 
 logger = logging.getLogger("EnvManager.Base")
 
@@ -13,6 +14,11 @@ class SnapshotNode:
     snapshot_id: str
     parent_id: Optional[str]
     children: List[str] = field(default_factory=list)
+
+    # Logic for virtual snapshot
+    is_virtual: bool = False
+    # Commands needed to reach THIS snapshot from its parent
+    replay_commands: List[List[str] | str] = field(default_factory=list)
 
 
 class EnvironmentManager(ABC):
@@ -33,6 +39,10 @@ class EnvironmentManager(ABC):
         self.__tmp_tree_print: str = "" # Temporary variable for tree printing, note this makes it non-thread-safe
         self.is_cleaned_up: bool = False
 
+        # Command log since last materialized snapshot
+        self._command_log: List[List[str] | str] = []
+        self.decider: Decider = RandomDecider()
+
 
     def __del__(self):
         """
@@ -51,24 +61,54 @@ class EnvironmentManager(ABC):
         """
         parent_id = self.last_snapshot_id if self.last_snapshot_id else None
 
-        # Core Operation
-        snapshot_id, elapsed = self._core_snapshot()
+        take_physical = self.decider.decide()
 
-        # Error handling for snapshot creation
-        if snapshot_id is None:
-            logger.error("Failed to create snapshot.")
-            return None
+        if take_physical:
+            # ===== Physical Snapshot =====
+            # Core Operation
+            snapshot_id, elapsed = self._core_snapshot()
 
-        # Logging
-        self._stats.add_entry("snapshot", snapshot_id, elapsed)
-        logger.info(f"Snapshot created: {snapshot_id} in {elapsed:.4f}s")
+            # Error handling for snapshot creation
+            if snapshot_id is None:
+                logger.error("Failed to create snapshot.")
+                return None
 
-        # Update the Tree Graph
-        node = SnapshotNode(snapshot_id=snapshot_id, parent_id=parent_id)
+            # Logging
+            self._stats.add_entry("snapshot", snapshot_id, elapsed)
+            logger.info(f"Snapshot created: {snapshot_id} in {elapsed:.4f}s")
+
+            node = SnapshotNode(
+                snapshot_id=snapshot_id,
+                parent_id=parent_id,
+                is_virtual=False,
+                replay_commands=[],
+            )
+
+        else:
+            # ===== Virtual Snapshot =====
+            snapshot_id = f"virtual_{int(time.time() * 1000)}"
+
+            logger.info(f"Creating virtual snapshot: {snapshot_id}")
+
+            node = SnapshotNode(
+                snapshot_id=snapshot_id,
+                parent_id=parent_id,
+                is_virtual=True,
+                replay_commands=list(self._command_log),
+            )
+
+        # ===== Graph Update =====
         self.snapshot_graph[snapshot_id] = node
         if parent_id and parent_id in self.snapshot_graph:
-            self.snapshot_graph[parent_id].children.append(snapshot_id)
+            parent_node = self.snapshot_graph[parent_id]
+            parent_node.children.append(snapshot_id)
+
+        # Reset command log since state is materialized
+        self._command_log = []
+
         self.last_snapshot_id = snapshot_id
+        # TODO: figure out here:
+        # self.current_snapshot_id = snapshot_id
 
         self.is_cleaned_up = False
         return snapshot_id
@@ -87,22 +127,67 @@ class EnvironmentManager(ABC):
         Restore the environment to a previous snapshot.
         Returns True if successful, False otherwise.
         """
-        # Core Operation
-        success, elapsed = self._core_restore(snapshot_id)
-
-        # Error handling for restoration
-        if not success:
-            logger.error(f"Failed to restore environment from snapshot {snapshot_id}.")
+        if snapshot_id not in self.snapshot_graph:
+            logger.error(f"Snapshot {snapshot_id} not found.")
             return False
 
-        self._stats.add_entry("restore", snapshot_id, elapsed)
-        logger.info(f"Environment restored from snapshot {snapshot_id} in {elapsed:.4f}s")
+        node = self.snapshot_graph[snapshot_id]
 
-        # Update the Tree Graph
+        # ===== Case 1: Physical =====
+        if not node.is_virtual:
+            success, elapsed = self._core_restore(snapshot_id)
+
+            if not success:
+                logger.error(f"Failed to restore snapshot {snapshot_id}.")
+                return False
+
+            self._stats.add_entry("restore", snapshot_id, elapsed)
+            logger.info(f"Restored physical snapshot {snapshot_id}")
+
+            self.current_snapshot_id = snapshot_id
+            self.last_snapshot_id = snapshot_id
+            self._command_log = []
+            return True
+
+        # ===== Case 2: Virtual =====
+        logger.info(f"Restoring virtual snapshot {snapshot_id}")
+
+        replay_chain = []
+        current = node
+
+        # Walk upward collecting replay commands
+        while current.is_virtual:
+            replay_chain.append(current)
+
+            if current.parent_id is None:
+                logger.error("Virtual snapshot has no physical ancestor.")
+                return False
+
+            current = self.snapshot_graph[current.parent_id]
+
+        physical_ancestor = current
+
+        # Restore physical ancestor
+        success, elapsed = self._core_restore(physical_ancestor.snapshot_id)
+        if not success:
+            logger.error("Failed to restore physical ancestor.")
+            return False
+
+        self._stats.add_entry("restore", physical_ancestor.snapshot_id, elapsed)
+
+        # Replay forward
+        replay_chain.reverse()
+
+        for virtual_node in replay_chain:
+            for cmd in virtual_node.replay_commands:
+                rc, _, stderr = self.exec_command(cmd)
+                if rc != 0:
+                    logger.error(f"Replay failed: {cmd}\n{stderr}")
+                    return False
+
         self.current_snapshot_id = snapshot_id
         self.last_snapshot_id = snapshot_id
-
-        self.is_cleaned_up = False
+        self._command_log = []
         return True
 
     def _core_restore(self, snapshot_id: str) -> tuple[bool, float]:
@@ -188,6 +273,10 @@ class EnvironmentManager(ABC):
 
         elapsed = time.time() - start
         self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
+
+        if returncode == 0:
+            self._command_log.append(command)
+
         logger.info(f"Exec finished (rc={returncode}) in {elapsed:.4f}s")
         return returncode, stdout, stderr
 
