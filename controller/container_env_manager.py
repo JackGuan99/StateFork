@@ -148,6 +148,23 @@ class ContainerAttachManager(EnvironmentManager):
             subprocess.run([self.BACKEND_CMD, "rmi", image_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             del self.snapshots[snapshot_id]
 
+    def _core_exec(self, command, timeout=None):
+        import subprocess
+
+        if isinstance(command, list):
+            cmd = ["docker", "exec", self.container_name] + command
+        else:
+            cmd = ["docker", "exec", self.container_name, "bash", "-c", command]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+        return result.returncode, result.stdout, result.stderr
+
 
 class ContainerBuildManager(ContainerAttachManager):
     def __init__(self,

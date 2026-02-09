@@ -86,7 +86,7 @@ class EnvironmentManager(ABC):
 
         else:
             # ===== Virtual Snapshot =====
-            snapshot_id = f"virtual_{int(time.time() * 1000)}"
+            snapshot_id = f"v{int(time.time() * 1000) % 10_000_000:07d}"
 
             logger.info(f"Creating virtual snapshot: {snapshot_id}")
 
