@@ -4,6 +4,7 @@ from .criu_env_manager import CRIUAttachManager, CRIUBuildManager
 from .hybrid_env_manager import HybridAttachManager, HybridBuildManager
 from .ckptlite_env_manager import CheckpointLiteAttachManager, CheckpointLiteBuildManager
 from .benchmark import BenchmarkStats, BenchmarkResult, Statistics
+from decider.decider import Decider, RandomDecider, AlwaysFalseDecider, AlwaysTrueDecider
 
 from typing import Literal
 
@@ -22,62 +23,72 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
     if method == "criu_build":
         return CRIUBuildManager(
             work_dir=kwargs.get("work_dir", "/tmp/statefork_criu"),
-            command=kwargs.get("command")
+            command=kwargs.get("command"),
+            decider=kwargs.get("decider")
         )
     elif method == "criu_attach":
         return CRIUAttachManager(
             target_pid=kwargs["target_pid"],
-            work_dir=kwargs.get("work_dir", "/tmp/statefork_criu")
+            work_dir=kwargs.get("work_dir", "/tmp/statefork_criu"),
+            decider=kwargs.get("decider")
         )
     elif method == "docker_build":
         return ContainerBuildManager(
             backend="Docker",
             base_image=kwargs.get("base_image"),
             dockerfile_dir=kwargs.get("dockerfile_dir", "."),
-            extra_args=kwargs.get("extra_args")
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
         )
     elif method == "docker_attach":
         return ContainerAttachManager(
             backend="Docker",
             container_name=kwargs["container_name"],
             base_image=kwargs.get("base_image", "statefork-app:base"),
-            extra_args=kwargs.get("extra_args")
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
         )
     elif method == "podman_build":
         return ContainerBuildManager(
             backend="Podman",
             base_image=kwargs.get("base_image"),
             dockerfile_dir=kwargs.get("dockerfile_dir", "."),
-            extra_args=kwargs.get("extra_args")
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
         )
     elif method == "podman_attach":
         return ContainerAttachManager(
             backend="Podman",
             container_name=kwargs["container_name"],
             base_image=kwargs.get("base_image", "statefork-app:base"),
-            extra_args=kwargs.get("extra_args")
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
         )
     elif method == "hybrid_build":
         return HybridBuildManager(
             container_name=kwargs.get("container_name", "podman-build"),
             dockerfile_dir=kwargs.get("dockerfile_dir", "."),
             export_dir=kwargs.get("export_dir", "/tmp/statefork_podman"),
-            extra_args=kwargs.get("extra_args")
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
         )
     elif method == "hybrid_attach":
         return HybridAttachManager(
             container_name=kwargs["container_name"],
-            export_dir=kwargs.get("export_dir", "/tmp/statefork_podman")
+            export_dir=kwargs.get("export_dir", "/tmp/statefork_podman"),
+            decider=kwargs.get("decider")
         )
     elif method == "ckpt_build":
         return CheckpointLiteBuildManager(
             init_dir=kwargs.get("init_dir"),
-            command=kwargs.get("command", "default")
+            command=kwargs.get("command", "default"),
+            decider=kwargs.get("decider")
         )
     elif method == "ckpt_attach":
         return CheckpointLiteAttachManager(
             target_pid=kwargs["target_pid"],
-            session_id=kwargs["session_id"]
+            session_id=kwargs["session_id"],
+            decider=kwargs.get("decider")
         )
     else:
         raise ValueError(f"Unknown method: {method}")

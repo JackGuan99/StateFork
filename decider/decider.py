@@ -24,3 +24,19 @@ class RandomDecider(Decider):
 
     def decide(self) -> bool:
         return random.choice([True, False])
+
+class AlwaysTrueDecider(Decider):
+    """
+    Simple implementation: always create physical snapshot
+    """
+
+    def decide(self) -> bool:
+        return True
+
+class AlwaysFalseDecider(Decider):
+    """
+    Simple implementation: always create virtual snapshot
+    """
+
+    def decide(self) -> bool:
+        return False

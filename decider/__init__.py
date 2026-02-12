@@ -1,1 +1,6 @@
-from .decider import Decider, RandomDecider
+from .decider import (
+    Decider,
+    RandomDecider,
+    AlwaysTrueDecider,
+    AlwaysFalseDecider,
+)

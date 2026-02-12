@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from .benchmark import BenchmarkStats
-from decider.decider import Decider, RandomDecider
+from decider.decider import Decider, RandomDecider, AlwaysFalseDecider, AlwaysTrueDecider
 
 logger = logging.getLogger("EnvManager.Base")
 
@@ -29,7 +29,7 @@ class EnvironmentManager(ABC):
     Applied the Strategy design pattern for different environment managers.
     """
 
-    def __init__(self, backend_name: str = "Base"):
+    def __init__(self, backend_name: str = "Base", decider: Optional[Decider] = None):
         self.backend_name = backend_name
         self.snapshots: Dict[str, str] = {}  # snapshot_id -> image_id
         self._stats = BenchmarkStats()
@@ -39,9 +39,9 @@ class EnvironmentManager(ABC):
         self.__tmp_tree_print: str = "" # Temporary variable for tree printing, note this makes it non-thread-safe
         self.is_cleaned_up: bool = False
 
-        # Command log since last materialized snapshot
+        # Command log since last generated snapshot
         self._command_log: List[List[str] | str] = []
-        self.decider: Decider = RandomDecider()
+        self.decider: Decider = decider if decider is not None else AlwaysTrueDecider()
 
 
     def __del__(self):
@@ -103,7 +103,7 @@ class EnvironmentManager(ABC):
             parent_node = self.snapshot_graph[parent_id]
             parent_node.children.append(snapshot_id)
 
-        # Reset command log since state is materialized
+        # Reset command log since state is fully tracked
         self._command_log = []
 
         self.last_snapshot_id = snapshot_id
@@ -183,7 +183,6 @@ class EnvironmentManager(ABC):
                 rc, _, stderr = self.exec_command(cmd)
                 if rc != 0:
                     logger.error(f"Replay failed: {cmd}\n{stderr}")
-                    return False
 
         self.current_snapshot_id = snapshot_id
         self.last_snapshot_id = snapshot_id
@@ -269,13 +268,14 @@ class EnvironmentManager(ABC):
             elapsed = time.time() - start
             self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
             logger.error(f"Execution failed: {e}")
+            # Still record the command
+            self._command_log.append(command)
             return -1, "", str(e)
 
         elapsed = time.time() - start
         self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
 
-        if returncode == 0:
-            self._command_log.append(command)
+        self._command_log.append(command)
 
         logger.info(f"Exec finished (rc={returncode}) in {elapsed:.4f}s")
         return returncode, stdout, stderr
