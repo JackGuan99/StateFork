@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Literal, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import Calculator
-from decider.decider import Decider, RandomDecider, AlwaysFalseDecider, AlwaysTrueDecider
+from decider import Decider
 
 BackendType = Literal["Docker", "Podman"]
 

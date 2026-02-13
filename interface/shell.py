@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from controller import create_env_manager
-from decider import RandomDecider, AlwaysTrueDecider, AlwaysFalseDecider
+from decider import RandomDecider, AlwaysTrueDecider, AlwaysFalseDecider, ThresholdDecider
 
 
 AVAILABLE_COMMANDS = [
@@ -33,17 +33,22 @@ DECIDER_MAP = {
     "random": RandomDecider,
     "always_true": AlwaysTrueDecider,
     "always_false": AlwaysFalseDecider,
+    "threshold": ThresholdDecider,
 }
 
 
-def build_manager(method: str, decider_name: str):
+def build_manager(method: str, decider_name: str, threshold: float):
     method_key = BACKEND_MAP[method]
-    decider_cls = DECIDER_MAP[decider_name]
-    decider_instance = decider_cls()
+
+    if decider_name == "threshold":
+        decider_instance = ThresholdDecider(threshold)
+    else:
+        decider_cls = DECIDER_MAP[decider_name]
+        decider_instance = decider_cls()
 
     return create_env_manager(
         method_key,
-        decider=decider_instance
+        decider=decider_instance,
     )
 
 
@@ -135,9 +140,16 @@ def main():
         help="Choose snapshot decision strategy"
     )
 
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=5,
+        help="Threshold (seconds) for threshold decider"
+    )
+
     args = parser.parse_args()
 
-    manager = build_manager(args.method, args.decider)
+    manager = build_manager(args.method, args.decider, args.threshold)
     interactive_shell(manager)
 
 

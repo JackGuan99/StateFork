@@ -9,7 +9,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import Calculator
-from decider.decider import Decider, RandomDecider, AlwaysFalseDecider, AlwaysTrueDecider
+from decider import Decider
 
 logger = logging.getLogger("EnvManager.CkptLite")
 

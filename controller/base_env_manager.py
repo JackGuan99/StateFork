@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from .benchmark import BenchmarkStats
-from decider.decider import Decider, RandomDecider, AlwaysFalseDecider, AlwaysTrueDecider
+from decider import Decider, DecisionContext
 
 logger = logging.getLogger("EnvManager.Base")
 
@@ -43,6 +43,9 @@ class EnvironmentManager(ABC):
         self._command_log: List[List[str] | str] = []
         self.decider: Decider = decider if decider is not None else AlwaysTrueDecider()
 
+        # cumulative execution time since last generated snapshot
+        self._cumulative_exec_time: float = 0.0
+
 
     def __del__(self):
         """
@@ -61,7 +64,10 @@ class EnvironmentManager(ABC):
         """
         parent_id = self.last_snapshot_id if self.last_snapshot_id else None
 
-        take_physical = self.decider.decide()
+        context = DecisionContext(
+            cumulative_exec_time=self._cumulative_exec_time,
+        )
+        take_physical = self.decider.decide(context)
 
         if take_physical:
             # ===== Physical Snapshot =====
@@ -84,6 +90,11 @@ class EnvironmentManager(ABC):
                 replay_commands=[],
             )
 
+            # Clean the cumulative execution time; Do not clean this in
+            # virtual node because time is still need to go through that
+            # virtual node in restore
+            self._cumulative_exec_time = 0.0
+
         else:
             # ===== Virtual Snapshot =====
             snapshot_id = f"v{int(time.time() * 1000) % 10_000_000:07d}"
@@ -103,7 +114,7 @@ class EnvironmentManager(ABC):
             parent_node = self.snapshot_graph[parent_id]
             parent_node.children.append(snapshot_id)
 
-        # Reset command log since state is fully tracked
+        # Reset command log and time since state is fully tracked
         self._command_log = []
 
         self.last_snapshot_id = snapshot_id
@@ -273,6 +284,7 @@ class EnvironmentManager(ABC):
             return -1, "", str(e)
 
         elapsed = time.time() - start
+        self._cumulative_exec_time += elapsed
         self._stats.add_entry("exec", self.current_snapshot or "<none>", elapsed)
 
         self._command_log.append(command)
