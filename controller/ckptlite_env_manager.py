@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import shlex
 import subprocess
@@ -7,6 +9,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import Calculator
+from decider import Decider
 
 logger = logging.getLogger("EnvManager.CkptLite")
 
@@ -64,9 +67,10 @@ class CheckpointLiteAttachManager(EnvironmentManager):
     """
     def __init__(self,
                  target_pid: int,
-                 session_id: str
+                 session_id: str,
+                 decider: Optional[Decider] = None,
                  ):
-        super().__init__(backend_name="Checkpoint-lite")
+        super().__init__(backend_name="Checkpoint-lite", decider=decider)
         self.session_id = session_id
         self.target_pid = target_pid
 
@@ -164,7 +168,8 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
     """
     def __init__(self,
                  init_dir: Optional[str] = None,
-                 command: Optional[List[str] | str] = "default"
+                 command: Optional[List[str] | str] = "default",
+                 decider: Optional[Decider] = None,
                  ):
         if init_dir is None:
             target_dir = os.getcwd()
@@ -212,7 +217,7 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
             time.sleep(5)  # wait for app to initialize
             proc_pid = proc.pid
 
-        super().__init__(target_pid=proc_pid, session_id=sid)
+        super().__init__(target_pid=proc_pid, session_id=sid, decider=decider)
 
         # Attach the new CkptCalculator to this session
         base_dir = os.path.join(self._work_dir, "../")

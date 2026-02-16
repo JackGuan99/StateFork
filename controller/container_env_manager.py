@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re
 import subprocess
 import time
@@ -6,6 +7,7 @@ import logging
 from typing import Optional, Literal, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import Calculator
+from decider import Decider
 
 BackendType = Literal["Docker", "Podman"]
 
@@ -79,7 +81,8 @@ class ContainerAttachManager(EnvironmentManager):
                  backend: BackendType,
                  container_name: str,
                  base_image: str,
-                 extra_args: Optional[List[str]] = None
+                 extra_args: Optional[List[str]] = None,
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a container-based environment by attaching to an existing container.
@@ -92,7 +95,7 @@ class ContainerAttachManager(EnvironmentManager):
             Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
         """
         self.BACKEND_CMD, self.BACKEND_NAME, self.logger = get_backend_tool(backend)
-        super().__init__(backend_name=self.BACKEND_NAME)
+        super().__init__(backend_name=self.BACKEND_NAME, decider=decider)
         self.container_name = container_name
         self.extra_args = extra_args or []
         self.image_prefix, _ = base_image.split(":", 1)
@@ -148,13 +151,31 @@ class ContainerAttachManager(EnvironmentManager):
             subprocess.run([self.BACKEND_CMD, "rmi", image_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             del self.snapshots[snapshot_id]
 
+    def _core_exec(self, command, timeout=None):
+        import subprocess
+
+        if isinstance(command, list):
+            cmd = ["docker", "exec", self.container_name] + command
+        else:
+            cmd = ["docker", "exec", self.container_name, "bash", "-c", command]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+        return result.returncode, result.stdout, result.stderr
+
 
 class ContainerBuildManager(ContainerAttachManager):
     def __init__(self,
                  backend: BackendType,
                  dockerfile_dir: str = ".",
                  base_image: str = None,
-                 extra_args: Optional[List[str]] = None
+                 extra_args: Optional[List[str]] = None,
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a container-based environment by building from a Dockerfile.
@@ -178,7 +199,7 @@ class ContainerBuildManager(ContainerAttachManager):
         logger.info(f"Building base {backend_name} image '{base_image}' from directory '{dockerfile_dir}'...")
         subprocess.run([backend_cmd, "build", "-t", base_image, dockerfile_dir], stdout=subprocess.DEVNULL, check=True)
 
-        super().__init__(backend=backend, container_name="statefork_active", base_image=base_image, extra_args=extra_args)
+        super().__init__(backend=backend, container_name="statefork_active", base_image=base_image, extra_args=extra_args, decider=decider)
 
         logger.info("Creating initial environment from base image...")
         res, _ = self._core_create_env("base")

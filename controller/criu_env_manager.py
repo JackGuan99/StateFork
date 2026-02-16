@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import psutil
 import shutil
@@ -9,6 +11,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import FileSizeCalculator
+from decider import Decider
 
 logger = logging.getLogger("EnvManager.CRIU")
 
@@ -19,7 +22,8 @@ class CRIUAttachManager(EnvironmentManager):
     """
     def __init__(self,
                  target_pid: int,
-                 work_dir: str = "/tmp/statefork_criu"
+                 work_dir: str = "/tmp/statefork_criu",
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a CRIU-based environment by attaching to an existing running process.
@@ -29,7 +33,7 @@ class CRIUAttachManager(EnvironmentManager):
         :param work_dir: Directory for storing checkpoint images and related files.
             Example: "/tmp/statefork_criu"
         """
-        super().__init__(backend_name="CRIU")
+        super().__init__(backend_name="CRIU", decider=decider)
         self.work_dir = work_dir
         os.makedirs(self.work_dir, exist_ok=True)
 
@@ -133,7 +137,8 @@ class CRIUBuildManager(CRIUAttachManager):
     """
     def __init__(self,
                  work_dir: str = "/tmp/statefork_criu",
-                 command: Optional[List[str]] = None
+                 command: Optional[List[str]] = None,
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a CRIU-based environment by launching and managing a new local process.
@@ -160,7 +165,7 @@ class CRIUBuildManager(CRIUAttachManager):
             raise RuntimeError("Failed to start the APP.")
 
         time.sleep(2)  # wait for app to initialize
-        super().__init__(target_pid=process.pid, work_dir=work_dir)
+        super().__init__(target_pid=process.pid, work_dir=work_dir, decider=decider)
         self.process = process
 
     @staticmethod

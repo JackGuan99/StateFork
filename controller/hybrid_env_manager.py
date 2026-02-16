@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import time
@@ -7,6 +9,7 @@ import logging
 from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from .benchmark import FileSizeCalculator
+from decider import Decider
 
 logger = logging.getLogger("EnvManager.PodmanHybrid")
 
@@ -14,7 +17,8 @@ logger = logging.getLogger("EnvManager.PodmanHybrid")
 class HybridAttachManager(EnvironmentManager):
     def __init__(self,
                  container_name: str,
-                 export_dir: str = "/tmp/statefork_podman"
+                 export_dir: str = "/tmp/statefork_podman",
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a hybrid environment using Podman with CRIU by attaching to a running container.
@@ -24,7 +28,7 @@ class HybridAttachManager(EnvironmentManager):
         :param export_dir: Directory for storing CRIU export files (.tar.zstd).
             Example: "/tmp/statefork_podman"
         """
-        super().__init__(backend_name="Podman+CRIU")
+        super().__init__(backend_name="Podman+CRIU", decider=decider)
         self.container_name = container_name
         self.export_dir = export_dir
         os.makedirs(self.export_dir, exist_ok=True)
@@ -100,7 +104,8 @@ class HybridBuildManager(HybridAttachManager):
                  container_name: str = "podman-build",
                  dockerfile_dir: str = ".",
                  export_dir: str = "/tmp/statefork_podman",
-                 extra_args: Optional[List[str]] = None
+                 extra_args: Optional[List[str]] = None,
+                 decider: Optional[Decider] = None,
                  ):
         """
         Initialize a hybrid environment using Podman with CRIU by building from Dockerfile.
@@ -127,6 +132,6 @@ class HybridBuildManager(HybridAttachManager):
 
         time.sleep(2)  # wait for app to initialize
 
-        super().__init__(container_name=container_name, export_dir=export_dir)
+        super().__init__(container_name=container_name, export_dir=export_dir, decider=decider)
 
 
