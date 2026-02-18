@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from .benchmark import BenchmarkStats
-from decider import Decider, DecisionContext
+from decider import Decider, DecisionContext, AlwaysTrueDecider
 
 logger = logging.getLogger("EnvManager.Base")
 

@@ -81,13 +81,13 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
     elif method == "ckpt_build":
         return CheckpointLiteBuildManager(
             init_dir=kwargs.get("init_dir"),
-            command=kwargs.get("command", "default"),
+            build=kwargs.get("build", False),
             decider=kwargs.get("decider")
         )
     elif method == "ckpt_attach":
         return CheckpointLiteAttachManager(
-            target_pid=kwargs["target_pid"],
             session_id=kwargs["session_id"],
+            target_pid=kwargs.get("target_pid", -2),
             decider=kwargs.get("decider")
         )
     else:

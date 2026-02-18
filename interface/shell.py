@@ -59,6 +59,8 @@ def interactive_shell(manager):
     print("")
     print(f"Available commands: {', '.join(AVAILABLE_COMMANDS)}")
 
+    need_cmd_heading = True
+
     while True:
         cmd = input("\nStateFork > ").strip()
 
@@ -92,7 +94,6 @@ def interactive_shell(manager):
 
             rc, out, err = manager.exec_command(command_text)
 
-            print(f"Return code: {rc}")
             if out:
                 print("--- stdout ---")
                 print(out)
@@ -118,9 +119,33 @@ def interactive_shell(manager):
             manager.cleanup()
             break
 
+        elif cmd.startswith("set"):
+            _, _, config_string = cmd.partition(" ")
+            if not config_string:
+                print("Usage: set <config>")
+                continue
+            elif config_string == "cmd off":
+                need_cmd_heading = False
+                print("Command input heading turned OFF.")
+            elif config_string == "cmd on":
+                need_cmd_heading = True
+                print("Command input heading turned ON.")
+            else:
+                print(f"Unknown config: {config_string}")
+
         else:
-            print(f"Unknown command: {cmd}")
-            print(f"Available commands: {', '.join(AVAILABLE_COMMANDS)}")
+            if need_cmd_heading:
+                print(f"Unknown command: {cmd}")
+                print(f"Available commands: {', '.join(AVAILABLE_COMMANDS)}")
+                continue
+            # If heading is turned off, treat unknown commands as direct commands to execute
+            rc, out, err = manager.exec_command(cmd)
+            if out:
+                print("--- stdout ---")
+                print(out)
+            if err:
+                print("--- stderr ---")
+                print(err)
 
 
 def main():
@@ -136,7 +161,7 @@ def main():
     parser.add_argument(
         "--decider",
         choices=DECIDER_MAP.keys(),
-        default="random",
+        default="always_true",
         help="Choose snapshot decision strategy"
     )
 

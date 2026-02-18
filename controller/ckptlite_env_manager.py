@@ -32,7 +32,7 @@ class CkptCalculator(Calculator):
             return []
         items = []
         for name in os.listdir(self.root_dir):
-            if name in ["metadata", "work"]:
+            if name in ["metadata", "work", "temp"]:
                 continue
             sub_path = os.path.join(self.root_dir, name, self.sub_dir)
             if os.path.exists(sub_path):
@@ -65,9 +65,11 @@ class CheckpointLiteAttachManager(EnvironmentManager):
     """
     CheckpointLiteAttachManager is a specialized Checkpoint-lite EnvironmentManager that attaches to an existing session.
     """
+    PID_NOT_PROVIDED = -2
+
     def __init__(self,
-                 target_pid: int,
                  session_id: str,
+                 target_pid: int = PID_NOT_PROVIDED,
                  decider: Optional[Decider] = None,
                  ):
         super().__init__(backend_name="Checkpoint-lite", decider=decider)
@@ -92,7 +94,7 @@ class CheckpointLiteAttachManager(EnvironmentManager):
         start = time.time()
         try:
             subprocess.run(
-                ["./checkpoint-lite", "create", self.session_id, str(self.target_pid), snapshot_id],
+                ["./checkpoint-lite", "create", self.session_id, snapshot_id, str(self.target_pid)],
                 check=True
             )
             elapsed = time.time() - start
@@ -142,7 +144,7 @@ class CheckpointLiteAttachManager(EnvironmentManager):
             cmd_str = shlex.join(command)
 
         # Execute `command` via `./checkpoint-lite exec <session_id> <args...>`.
-        exec_args = ["./checkpoint-lite", "exec", self.session_id, "sh", "-c", cmd_str]
+        exec_args = ["./checkpoint-lite", "exec", self.session_id, cmd_str]
         try:
             proc = subprocess.run(
                 exec_args,
@@ -168,7 +170,7 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
     """
     def __init__(self,
                  init_dir: Optional[str] = None,
-                 command: Optional[List[str] | str] = "default",
+                 build: bool = False,
                  decider: Optional[Decider] = None,
                  ):
         if init_dir is None:
@@ -177,47 +179,38 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
             target_dir = os.path.abspath(init_dir)
 
         logger.info("Creating a new Checkpoint-lite session...")
-        init_process = subprocess.run(
-            ["./checkpoint-lite", "init", target_dir, "--quiet"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
+        if not build:
+            init_process = subprocess.run(
+                ["./checkpoint-lite", "init", target_dir, "--quiet"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
 
-        output = init_process.stdout.strip()
-        try:
-            sid, self._work_dir = output.split(",", 1)
-        except ValueError:
-            raise RuntimeError(f"Unexpected output format: {output}")
+            output = init_process.stdout.strip()
+            try:
+                sid, self._work_dir = output.split(",", 1)
+            except ValueError:
+                raise RuntimeError(f"Unexpected output format: {output}")
+        else:
+            init_process = subprocess.run(
+                ["./checkpoint-lite", "build", target_dir, "--quiet"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=True
+            )
+
+            output = init_process.stdout.strip()
+            try:
+                sid, self._work_dir, _ = output.split(",", 2)
+            except ValueError:
+                raise RuntimeError(f"Unexpected output format: {output}")
 
         logger.info(f"New session {sid} with work directory '{self._work_dir}' created.")
 
-        proc_pid = -1
-        if command is None:
-            logger.info(f"User skipped the APP launch.")
-        else:
-            if command == "default":
-                command = [
-                    "uvicorn", "app.api_server:app",
-                    "--host", "127.0.0.1",
-                    "--port", "8000",
-                    "--no-access-log"
-                ]
-            elif isinstance(command, str):
-                command = command.split()
-
-            logger.info(f"Starting initial APP...")
-            proc = subprocess.Popen(
-                command,
-                cwd=self._work_dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            time.sleep(5)  # wait for app to initialize
-            proc_pid = proc.pid
-
-        super().__init__(target_pid=proc_pid, session_id=sid, decider=decider)
+        super().__init__(session_id=sid, decider=decider)
 
         # Attach the new CkptCalculator to this session
         base_dir = os.path.join(self._work_dir, "../")
