@@ -98,6 +98,20 @@ class HybridAttachManager(EnvironmentManager):
         logger.info(f"Cleaning up Podman checkpoint files in {self.export_dir}")
         shutil.rmtree(self.export_dir, ignore_errors=True)
 
+    def _core_exec(self, command, timeout=None):
+        if isinstance(command, list):
+            cmd = ["podman", "exec", self.container_name] + command
+        else:
+            cmd = ["podman", "exec", self.container_name, "bash", "-c", command]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+        return result.returncode, result.stdout, result.stderr
 
 class HybridBuildManager(HybridAttachManager):
     def __init__(self,

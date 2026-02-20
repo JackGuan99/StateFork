@@ -50,7 +50,6 @@ def build_manager(method: str, decider_name: str, threshold: float):
     return create_env_manager(
         method_key,
         decider=decider_instance,
-        build=True,
     )
 
 def print_welcome_message(manager):

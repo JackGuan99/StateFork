@@ -177,14 +177,14 @@ class CheckpointLiteBuildManager(CheckpointLiteAttachManager):
     CheckpointLiteBuildManager is a specialized Checkpoint-lite EnvironmentManager that builds a new session.
     """
     def __init__(self,
-                 init_dir: Optional[str] = None,
-                 build: bool = False,
+                 dockerfile_dir: str = ".",
+                 build: bool = True,
                  decider: Optional[Decider] = None,
                  ):
-        if init_dir is None:
+        if dockerfile_dir is None:
             target_dir = os.getcwd()
         else:
-            target_dir = os.path.abspath(init_dir)
+            target_dir = os.path.abspath(dockerfile_dir)
 
         logger.info("Creating a new Checkpoint-lite session...")
         if not build:

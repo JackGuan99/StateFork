@@ -78,7 +78,7 @@ See the full method table below for supported types and arguments.
 | `criu_attach`     | CRIUAttachManager           | CRIU            | `target_pid(int)`                        | `work_dir(str)`                                                                          |
 | `hybrid_build`    | HybridBuildManager          | Podman + CRIU   |                                          | `container_name(str)`, `dockerfile_dir(str)`, `export_dir(str)`, `extra_args(List[str])` |
 | `hybrid_attach`   | HybridAttachManager         | Podman + CRIU   | `container_name(str)`                    | `export_dir(str)`                                                                        |
-| `ckpt_build`      | CheckpointLiteBuildManager  | Checkpoint-lite |                                          | `init_dir(str)`, `command(List[str])`                                                    |
+| `ckpt_build`      | CheckpointLiteBuildManager  | Checkpoint-lite |                                          | `dockerfile_dir(str)`, `build(bool)`                                                    |
 | `ckpt_attach`     | CheckpointLiteAttachManager | Checkpoint-lite | `target_pid(int)`, `session_id(str)`     |                                                                                          |
 
 ## 🧪 Benchmarking Support
@@ -130,3 +130,19 @@ For core controller usage, see the `controller/README.md` file.
 For interface usage, see the `interface/README.md` file.
 
 > Want to contribute? File issues or PRs in the GitHub repo!
+
+## Citation
+
+If you use StateFork in academic research, please cite:
+
+```bibtex
+@misc{xu2025systemsfoundationsagenticexploration,
+      title={Toward Systems Foundations for Agentic Exploration}, 
+      author={Jiakai Xu and Tianle Zhou and Eugene Wu and Kostis Kaffes},
+      year={2025},
+      eprint={2510.05556},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC},
+      url={https://arxiv.org/abs/2510.05556}, 
+}
+```

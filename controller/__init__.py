@@ -80,8 +80,8 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
         )
     elif method == "ckpt_build":
         return CheckpointLiteBuildManager(
-            init_dir=kwargs.get("init_dir"),
-            build=kwargs.get("build", False),
+            dockerfile_dir=kwargs.get("dockerfile_dir"),
+            build=kwargs.get("build", True),
             decider=kwargs.get("decider")
         )
     elif method == "ckpt_attach":

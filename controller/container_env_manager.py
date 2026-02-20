@@ -152,12 +152,10 @@ class ContainerAttachManager(EnvironmentManager):
             del self.snapshots[snapshot_id]
 
     def _core_exec(self, command, timeout=None):
-        import subprocess
-
         if isinstance(command, list):
-            cmd = ["docker", "exec", self.container_name] + command
+            cmd = [self.BACKEND_CMD, "exec", self.container_name] + command
         else:
-            cmd = ["docker", "exec", self.container_name, "bash", "-c", command]
+            cmd = [self.BACKEND_CMD, "exec", self.container_name, "bash", "-c", command]
 
         result = subprocess.run(
             cmd,
