@@ -18,10 +18,11 @@ identifiers:
     value: 10.48550/arXiv.2510.05556
 repository-code: 'https://github.com/Alex-XJK/StateFork'
 abstract: >-
-  StateFork provides structured environment forking and
-  state branching semantics for agentic execution.
-  It enables reproducible multi-trajectory exploration
-  by managing isolated runtime state across forks.
+  StateFork provides structured environment snapshoting and
+  restoration capabilities for agentic exploration. It supports
+  multiple snapshotting methods, including Docker, Podman, and
+  Checkpoint-lite, enabling flexible and efficient state management
+  for agents.
 license: Apache-2.0
 version: 0.5.0
 date-released: '2026-02-20'
