@@ -26,6 +26,7 @@ BACKEND_MAP = {
     "criu": "criu_build",
     "hybrid": "hybrid_build",
     "ckpt": "ckpt_build",
+    "gvisor": "gvisor_build",
 }
 
 
