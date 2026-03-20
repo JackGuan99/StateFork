@@ -24,19 +24,23 @@ class GvisorAttachManager(EnvironmentManager):
         :param base_image: Base image to use for the environment.
             Example: "ubuntu:latest" or "statefork:base".
         :param extra_args: Additional command-line args passed during container startup.
-            Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+            Example: ["-v", "/tmp:/tmp"]
         """
+        # TODO: set logger?
         super().__init__(backend_name="gVisor", decider=decider)
         self.container_name = container_name
         self.extra_args = extra_args or []
-        self.image_prefix, _ = base_image.split(":", 1)
-        logger.info(f"Recognized base image prefix: {self.image_prefix}")
-        self.snapshots["base"] = base_image
+
+        sid, _ = self._core_snapshot()
+        if sid is None:
+            raise RuntimeError("Failed to create initial snapshot.")
 
         # Init the Tree Graph
-        self.snapshot_graph["base"] = SnapshotNode(snapshot_id="base", parent_id=None)
-        self.current_snapshot_id = "base"
-        self.last_snapshot_id = "base"
+        self.snapshot_graph[sid] = SnapshotNode(snapshot_id=sid, parent_id=None)
+        self.current_snapshot_id = sid
+        self.last_snapshot_id = sid
+
+        # TODO: Attach image calculator?
 
 
     def _core_snapshot(self) -> tuple[Optional[str], float]:
@@ -113,24 +117,23 @@ class GvisorBuildManager(GvisorAttachManager):
         :param base_image: Base image to use for building the container.
             Example: "python:3.10-slim"
         :param extra_args: Additional command-line args passed during container startup.
-            Example: ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+            Example: ["-v", "/tmp:/tmp"]
         """
         if base_image is None:
             base_image = f"statefork_{str(uuid.uuid4())[:4]}:base"
 
         if extra_args is None:
-            extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
+            extra_args = ["-v", "/tmp:/tmp"]
 
+        # TODO: set logger?
         logger.info(f"Building base gVisor image '{base_image}' from directory '{dockerfile_dir}'...")
-
-        # TODO: Build a docker image with dockerfile_dir
-        # subprocess.run([...], stdout=subprocess.DEVNULL, check=True)
-
-        super().__init__(container_name="statefork_active", base_image=base_image, extra_args=extra_args, decider=decider)
+        subprocess.run(["docker", "build", "-t", base_image, dockerfile_dir], stdout=subprocess.DEVNULL, check=True)
 
         logger.info("Creating initial environment from base image...")
-        # TODO: Run a container with gvisor/runsc enabled
-        #   `docker run extra_args --runtime=runsc --name=statefork_active base_image`
-        # res, _ = self._core_create_env("base")
-        if res is None:
+        cmd = ["docker", "run", "-d", "--runtime", "runsc", "--network", "host", "--name", self.container_name] + self.extra_args + [base_image]
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+        except subprocess.CalledProcessError:
             raise RuntimeError("Failed to create initial environment from base image.")
+
+        super().__init__(container_name="statefork_active", base_image=base_image, extra_args=extra_args, decider=decider)

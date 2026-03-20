@@ -90,5 +90,12 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
             target_pid=kwargs.get("target_pid", -2),
             decider=kwargs.get("decider")
         )
+    elif method == "gvisor_build":
+        return GvisorBuildManager(
+            base_image=kwargs.get("base_image"),
+            dockerfile_dir=kwargs.get("dockerfile_dir", "."),
+            extra_args=kwargs.get("extra_args"),
+            decider=kwargs.get("decider")
+        )
     else:
         raise ValueError(f"Unknown method: {method}")
