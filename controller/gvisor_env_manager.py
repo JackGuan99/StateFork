@@ -83,6 +83,7 @@ class GvisorAttachManager(EnvironmentManager):
             del self.snapshots[snapshot_id]
 
     def _core_exec(self, command, timeout=None):
+        # TODO: Not sure how to do exec in gVisor, guess is the same as Docker's
         if isinstance(command, list):
             cmd = ["docker", "exec", self.container_name] + command
         else:
@@ -122,12 +123,15 @@ class GvisorBuildManager(GvisorAttachManager):
             extra_args = ["-p", "8000:8000", "-v", "/tmp:/tmp"]
 
         logger.info(f"Building base gVisor image '{base_image}' from directory '{dockerfile_dir}'...")
-        # TODO: Build and run a container
+
+        # TODO: Build a docker image with dockerfile_dir
         # subprocess.run([...], stdout=subprocess.DEVNULL, check=True)
 
         super().__init__(container_name="statefork_active", base_image=base_image, extra_args=extra_args, decider=decider)
 
         logger.info("Creating initial environment from base image...")
-        res, _ = self._core_create_env("base")
+        # TODO: Run a container with gvisor/runsc enabled
+        #   `docker run extra_args --runtime=runsc --name=statefork_active base_image`
+        # res, _ = self._core_create_env("base")
         if res is None:
             raise RuntimeError("Failed to create initial environment from base image.")
