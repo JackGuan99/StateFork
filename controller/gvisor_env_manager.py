@@ -52,6 +52,7 @@ class GvisorAttachManager(EnvironmentManager):
         super().__init__(backend_name="gVisor", decider=decider)
         self.container_name = container_name
         self.extra_args = extra_args or []
+        self.base_image = base_image
 
         sid, _ = self._core_snapshot()
         if sid is None:
@@ -89,7 +90,6 @@ class GvisorAttachManager(EnvironmentManager):
         # Stop container if running
         subprocess.run(["docker", "stop", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        # TODO: Run `docker start --checkpoint image_name self.container_name`
         # Start from checkpoint
         cmd = ["docker", "start", "--checkpoint", snapshot_id, self.container_name]
         logger.debug(f"Starting container with command: {' '.join(cmd)}")
@@ -103,8 +103,10 @@ class GvisorAttachManager(EnvironmentManager):
     def _core_cleanup(self):
         logger.info(f"Cleaning up gVisor docker container '{self.container_name}'")
         subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # if don't using custom --checkpoint-dir on checkpoint, images are in container dir and removed during rm.
-   
+        # if don't using custom --checkpoint-dir on checkpoint, checkpoints are in container dir and removed during rm.
+        logger.info(f"Cleaning up gvisor docker base image...")
+        subprocess.run(["docker", "rmi", "-f", self.base_image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def _core_exec(self, command, timeout=None):
         if isinstance(command, list):
             cmd = ["docker", "exec", self.container_name] + command
@@ -141,8 +143,8 @@ class GvisorBuildManager(GvisorAttachManager):
         if base_image is None:
             base_image = f"statefork_{str(uuid.uuid4())[:4]}:base"
 
-        if extra_args is None:
-            extra_args = ["-p", "8080:8080", "-v", "/tmp:/tmp"]
+        if extra_args is None: #TODO
+            extra_args = ["-v", "/tmp:/tmp"]
 
         container_name = "statefork_active"
 
