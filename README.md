@@ -48,6 +48,7 @@ They follow the naming convention `{Backend}{Action}Manager`, where:
   - `CRIU` for process-level CRIU checkpointing
   - `Hybrid` for Podman + CRIU (captures both file and process states) 
   - `CheckpointLite` for Checkpoint-lite, a lightweight checkpointing tool (captures both file and process states)
+  - `gVisor` for Docker in gVisor (captures both file and process states)
 - **{Action}** Lifecycle mode:
   - `Build` starts a fresh instance (for testing/dev)
   - `Attach` connects to an existing container or process
@@ -80,7 +81,7 @@ See the full method table below for supported types and arguments.
 | `hybrid_attach`   | HybridAttachManager         | Podman + CRIU   | `container_name(str)`                    | `export_dir(str)`                                                                        |
 | `ckpt_build`      | CheckpointLiteBuildManager  | Checkpoint-lite |                                          | `dockerfile_dir(str)`, `build(bool)`                                                    |
 | `ckpt_attach`     | CheckpointLiteAttachManager | Checkpoint-lite | `target_pid(int)`, `session_id(str)`     |                                                                                          |
-
+| `gvisor_build`    | GvisorBuildManager          | gVisor + Docker |                                          | `dockerfile_dir(str)`, `base_image(str)`, `extra_args(List[str])`                         |
 ## 🧪 Benchmarking Support
 StateFork automatically logs and benchmarks the performance of:
 
@@ -125,6 +126,11 @@ pip install -r requirements.txt
 - Make sure the `checkpoint-lite` binary is in the current directory (suggested using a symbolic link).
 - Root or `sudo` privileges are required.
 
+### Gvisor Method (with Docker)
+- Docker must be installed and running.
+- Docker must have the runsc runtime installed.
+- Docker must have experimental features enabled.
+- Make sure your user has permission to run Docker commands.
 ---
 For core controller usage, see the `controller/README.md` file.  
 For interface usage, see the `interface/README.md` file.
