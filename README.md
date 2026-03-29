@@ -126,11 +126,19 @@ pip install -r requirements.txt
 - Make sure the `checkpoint-lite` binary is in the current directory (suggested using a symbolic link).
 - Root or `sudo` privileges are required.
 
-### Gvisor Method (with Docker)
+### gVisor Method (with Docker)
 - Docker must be installed and running.
 - Docker must have the runsc runtime installed.
 - Docker must have experimental features enabled.
 - Make sure your user has permission to run Docker commands.
+
+#### gVisor Limitation: networking is not compatible with checkpoint/restore
+- The `--network=host` flag must be passed to Docker for checkpoint/restore to work at all (see [Moby issue](https://github.com/moby/moby/issues/50750)).
+- For gVisor to use the host network stack and fully achieve network passthrough, the `--network=host` flag must also be passed to runsc (see [gVisor user guide](https://gvisor.dev/docs/user_guide/networking/)).
+- However, this full network passthrough then breaks checkpoint/restore (see gvisor [source code](https://github.com/google/gvisor/blob/d23cf24593c311b17f79b6350fe0f629423a98ba/runsc/boot/restore.go#L472) and [issue](https://github.com/google/gvisor/issues/6243)).
+
+The result is a catch-22 in network functionality: checkpoint/restore requires `--network=host` passed to Docker, but full network passthrough requires `--network=host` passed to runsc, breaking checkpoint/restore.
+
 ---
 For core controller usage, see the `controller/README.md` file.  
 For interface usage, see the `interface/README.md` file.
