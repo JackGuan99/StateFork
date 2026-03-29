@@ -70,16 +70,20 @@ class GvisorAttachManager(EnvironmentManager):
         snapshot_id = str(uuid.uuid4())[:8]
 
         start = time.time()
-        # ask: wrap in try/except? not sure why ckptlite has but not container
-        subprocess.run(
-            ["docker", "checkpoint", "create", "--leave-running", self.container_name, snapshot_id],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        elapsed = time.time() - start
-        self.snapshots[snapshot_id] = snapshot_id
-        return snapshot_id, elapsed
+        try:
+            subprocess.run(
+                ["docker", "checkpoint", "create", "--leave-running", self.container_name, snapshot_id],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            elapsed = time.time() - start
+            self.snapshots[snapshot_id] = snapshot_id
+            self.current_snapshot_id = snapshot_id
+            return snapshot_id, elapsed
+        except subprocess.CalledProcessError as e:
+            logger.error(f"gVisor snapshot failed: {e}")
+            return None, 0.0
 
     def _core_create_env(self, snapshot_id: str) -> tuple[Optional[str], float]:
         snapshot_id = self.snapshots.get(snapshot_id)
@@ -95,17 +99,25 @@ class GvisorAttachManager(EnvironmentManager):
         logger.debug(f"Starting container with command: {' '.join(cmd)}")
 
         start = time.time()
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
-        elapsed = time.time() - start
+        try:
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+            elapsed = time.time() - start
 
-        return self.container_name, elapsed
+            return self.container_name, elapsed
+        except subprocess.CalledProcessError as e:
+            logger.error(f"gVisor restore failed: {e}")
+            return None, 0.0
 
     def _core_cleanup(self):
         logger.info(f"Cleaning up gVisor docker container '{self.container_name}'")
-        subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # if don't using custom --checkpoint-dir on checkpoint, checkpoints are in container dir and removed during rm.
-        logger.info(f"Cleaning up gvisor docker base image...")
-        subprocess.run(["docker", "rmi", "-f", self.base_image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.run(["docker", "rm", "-f", self.container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # if not using custom --checkpoint-dir on checkpoint, checkpoints are in container dir and removed during rm.
+            logger.info(f"Cleaning up gvisor docker base image...")
+            subprocess.run(["docker", "rmi", "-f", self.base_image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"gVisor cleanup failed: {e}")
+            return
 
     def _core_exec(self, command, timeout=None):
         if isinstance(command, list):
