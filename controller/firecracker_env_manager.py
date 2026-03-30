@@ -8,6 +8,7 @@ from typing import Optional, List
 from .base_env_manager import EnvironmentManager, SnapshotNode
 from decider import Decider
 from pathlib import Path
+import json
 
 logger = logging.getLogger("EnvManager.Firecracker")
 
@@ -148,25 +149,14 @@ class FireAttachManager(EnvironmentManager):
 
         return result.returncode, result.stdout, result.stderr
 
-
-class FireBuildManager(FireAttachManager):
-    def __init__(self,
-                 firecracker_dir: str = ".",
-                 snapshot_base: Optional[str] = "./snapshot_base",
-                 memfile_base: Optional[str] = "./memfile_base",
-                 decider: Optional[Decider] = None,
-                 ):
+    @staticmethod
+    def _start_microvm(firecracker_dir, ARCH, TAP_DEV, TAP_IP, MASK, FC_MAC, API_SOCKET):
         """
-        Initialize a Firecracker microVM.
+        Heavily based off of the "Getting Started" guide: https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
         """
-        logger.info("Creating Firecracker microVM...")
-        # TODO: Seems a lot of steps to start a VM and let it runs the test workload
-
-        # Artifacts
         logger.info("Setting up files...")
         firecracker_dir = Path(firecracker_dir)
         try:
-            ARCH = subprocess.check_output("uname -m", shell=True, text=True, stderr=subprocess.DEVNULL).strip()
             release_url = "https://github.com/firecracker-microvm/firecracker/releases"
             latest_version = subprocess.check_output(
                 f"basename $(curl -fsSLI -o /dev/null -w %{{url_effective}} {release_url}/latest)",
@@ -235,19 +225,118 @@ class FireBuildManager(FireAttachManager):
             else:
                 raise RuntimeError(f"{rootfs} is not a valid ext4 fs")
 
+            # 3) get firecracker binary
+            firecracker_binary = firecracker_dir / "firecracker"
+            if not firecracker_binary.exists():
+                subprocess.check_call(
+                    f'curl -sL {release_url}/download/{latest_version}/firecracker-{latest_version}-{ARCH}.tgz | tar -xz',
+                    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    cwd=firecracker_dir
+                )
+                src = firecracker_dir / f'release-{latest_version}-{ARCH}/firecracker-{latest_version}-{ARCH}'
+                src.rename(firecracker_binary)
+                if firecracker_binary.exists():
+                    logger.info(f"Firecracker binary set up: {firecracker_binary}")
+                else:
+                    raise RuntimeError(f"Unable to set up firecracker binary")
+            else:
+                logger.info(f"Using firecracker binary {firecracker_binary}")
+
+
+            # 4) make TAP device for networking
+            subprocess.run(["sudo", "ip", "link", "del", TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "tuntap", "add", "dev", TAP_DEV, "mode", "tap"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "addr", "add", f"{TAP_IP}{MASK}", "dev", TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "link", "set", "dev", TAP_DEV, "up"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            logger.info(f"TAP device {TAP_DEV} on {TAP_IP}{MASK} set up")
+
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to set up necessary files for firecracker")
 
-        # 3) (or maybe make prereq) get firecracker binary
-        # 4) make TAP device for networking -- have user pass in the ip? (also used for mac addr) 
+        # Write config file
+        config_path = firecracker_dir / "firecracker-config.json"
+        if not config_path.exists():
+            boot_args = "console=ttyS0 reboot=k panic=1"
+            if ARCH == "aarch64":
+                boot_args = f"keep_bootcon {boot_args}"
 
-        # Start VM
-        # 1) Run firecracker using config file long running process -- user pass in socket path?
-        # config file specifies:
-            #  Configure logging
-            #  Set kernel
-            #  Set rootfs
-            #  Set network interface
+            config = {
+                "boot-source": {
+                    "kernel_image_path": str(kernel),
+                    "boot_args": boot_args,
+                },
+                "drives": [
+                    {
+                        "drive_id": "rootfs",
+                        "is_root_device": True,
+                        "is_read_only": False,
+                        "path_on_host": str(rootfs),
+                    }
+                ],
+                "machine-config": {
+                    "vcpu_count": 2,
+                    "mem_size_mib": 1024,
+                },
+                "network-interfaces": [
+                    {
+                        "iface_id": "net1",
+                        "guest_mac": FC_MAC,
+                        "host_dev_name": TAP_DEV
+                    }
+                ],
+            }
+
+            try:
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+                logger.info(f"Firecracker config written to {config_path}")
+            except Exception:
+                raise RuntimeError("Failed to write firecracker config")
+        else:
+            logger.info(f"Using firecaracker config {config_path}") # careful: need FC_MAC, etc to match
+
+        # Run firecracker
+        try:
+            subprocess.run(["sudo", "rm", "-f", API_SOCKET], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            firecracker_process = subprocess.Popen(
+                ["sudo", str(firecracker_binary), "--api-sock", API_SOCKET, "--config-file", str(config_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL
+            )
+            logger.info(f"Started firecracker process and microVM")
+        except Exception:
+            raise RuntimeError(f"Failed to start firecracker process on socket {API_SOCKET}")
+
+        return id_rsa, "firecracker_process"
+
+class FireBuildManager(FireAttachManager):
+    def __init__(self,
+                 firecracker_dir: str = ".",
+                 snapshot_base: Optional[str] = "./snapshot_base",
+                 memfile_base: Optional[str] = "./memfile_base",
+                 decider: Optional[Decider] = None,
+                 ):
+        """
+        Initialize a Firecracker microVM.
+        """
+        ARCH = subprocess.check_output("uname -m", shell=True, text=True, stderr=subprocess.DEVNULL).strip()
+        TAP_DEV = "tap0"
+        TAP_IP = "172.16.0.1"
+        MASK = "/30"
+        FC_MAC = "06:00:AC:10:00:02" # corresponds to TAP_IP and MASK
+        API_SOCKET = "/tmp/firecracker.socket"
+        logger.info("Creating Firecracker microVM...")
+        ssh_key, firecracker_process = FireAttachManager._start_microvm(firecracker_dir, ARCH=ARCH, TAP_DEV=TAP_DEV, TAP_IP=TAP_IP, MASK=MASK, FC_MAC=FC_MAC, API_SOCKET=API_SOCKET)
+
+        # ping to verify that it is running
+        result = subprocess.run(
+            ["sudo", "curl", "-s", "--unix-socket", API_SOCKET, "http://localhost/"],
+            capture_output=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError("Firecracker API socket is not responsive")
+        logger.info("Firecracker VM is running")
 
         # on exit: issue reboot into ssh
 
@@ -256,9 +345,6 @@ class FireBuildManager(FireAttachManager):
         # step should pause, resume to kill, kill tap, and reboot into a new loaded one?
         # restore means kill current, kill tap, and then reboot into a newly loaded one?
 
-        # potentially checkpoint diffs instead, in which case need to merge before loading?
-
-        api_socket = "..."
-        super().__init__(api_socket=api_socket, snapshot_base=snapshot_base, memfile_base=memfile_base, decider=decider)
+        super().__init__(api_socket=API_SOCKET, decider=decider)
 
 
