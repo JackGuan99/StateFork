@@ -49,6 +49,7 @@ They follow the naming convention `{Backend}{Action}Manager`, where:
   - `Hybrid` for Podman + CRIU (captures both file and process states) 
   - `CheckpointLite` for Checkpoint-lite, a lightweight checkpointing tool (captures both file and process states)
   - `gVisor` for Docker in gVisor (captures both file and process states)
+  - `Firecracker` for Firecracker microVM (captures both file and process states)
 - **{Action}** Lifecycle mode:
   - `Build` starts a fresh instance (for testing/dev)
   - `Attach` connects to an existing container or process
@@ -82,6 +83,7 @@ See the full method table below for supported types and arguments.
 | `ckpt_build`      | CheckpointLiteBuildManager  | Checkpoint-lite |                                          | `dockerfile_dir(str)`, `build(bool)`                                                    |
 | `ckpt_attach`     | CheckpointLiteAttachManager | Checkpoint-lite | `target_pid(int)`, `session_id(str)`     |                                                                                          |
 | `gvisor_build`    | GvisorBuildManager          | gVisor + Docker |                                          | `dockerfile_dir(str)`, `base_image(str)`, `extra_args(List[str])`                         |
+|`firecracker_build`| FireBuildManager            | Firecracker     |                                          | `fire_parent_dir(str)`, `inject_dir(str)`                                                |
 ## 🧪 Benchmarking Support
 StateFork automatically logs and benchmarks the performance of:
 
@@ -138,6 +140,10 @@ pip install -r requirements.txt
 - However, this full network passthrough then breaks checkpoint/restore (see gvisor [source code](https://github.com/google/gvisor/blob/d23cf24593c311b17f79b6350fe0f629423a98ba/runsc/boot/restore.go#L472) and [issue](https://github.com/google/gvisor/issues/6243)).
 
 The result is a catch-22 in network functionality: checkpoint/restore requires `--network=host` passed to Docker, but full network passthrough requires `--network=host` passed to runsc, breaking checkpoint/restore.
+
+### Firecracker Method
+- paramiko must be installed (not currently in requirements.txt)
+- Root or `sudo` privileges are required.
 
 ---
 For core controller usage, see the `controller/README.md` file.  
