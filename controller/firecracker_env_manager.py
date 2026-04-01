@@ -40,6 +40,7 @@ class FireAttachManager(EnvironmentManager):
         
 
         # base snapshot
+        time.sleep(3) # need to ensure not snapshotting too early (fatal on restore)
         sid, _ = self._core_snapshot()
         if sid is None:
             raise RuntimeError("Failed to create initial snapshot.")
@@ -108,8 +109,8 @@ class FireAttachManager(EnvironmentManager):
             "-H", "Content-Type: application/json",
             "-d", json.dumps({
                 "snapshot_type": "Full", # add option to switch to "Diff"?
-                "snapshot_path": str(snapshot_path),
-                "mem_file_path": str(mem_file_path)
+                "snapshot_path": str(snapshot_path.resolve()),
+                "mem_file_path": str(mem_file_path.resolve())
             })
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
@@ -142,7 +143,6 @@ class FireAttachManager(EnvironmentManager):
         stdin, stdout, stderr = ssh.exec_command("reboot")
         ssh.close()
         # close firecracker process
-        self.fire_process.terminate()
         self.fire_process.wait()
 
         # remove old socket and start up non-config'd microvm
@@ -154,6 +154,7 @@ class FireAttachManager(EnvironmentManager):
                 stderr=subprocess.DEVNULL,
                 stdin=subprocess.DEVNULL
             )
+            self.fire_process = firecracker_process
         except Exception:
             raise RuntimeError(f"Failed to start firecracker process on socket {self.api_socket}")
 
@@ -170,8 +171,8 @@ class FireAttachManager(EnvironmentManager):
             "-H", "Accept: application/json",
             "-H", "Content-Type: application/json",
             "-d", json.dumps({
-                "snapshot_path": str(snapshot_path),
-                "mem_file_path": str(mem_path),
+                "snapshot_path": str(snapshot_path.resolve()),
+                "mem_file_path": str(mem_path.resolve()),
                 "resume_vm": True
             })
         ]
@@ -318,13 +319,13 @@ class FireAttachManager(EnvironmentManager):
         # Write config file
         config_path = firecracker_dir / "firecracker-config.json"
         if not config_path.exists():
-            boot_args = "console=ttyS0 reboot=k panic=1"
+            boot_args = "console=ttyS0 reboot=k panic=5 pci=off"
             if ARCH == "aarch64":
                 boot_args = f"keep_bootcon {boot_args}"
 
             config = {
                 "boot-source": {
-                    "kernel_image_path": str(kernel),
+                    "kernel_image_path": str(kernel.resolve()),
                     "boot_args": boot_args,
                 },
                 "drives": [
@@ -332,7 +333,7 @@ class FireAttachManager(EnvironmentManager):
                         "drive_id": "rootfs",
                         "is_root_device": True,
                         "is_read_only": False,
-                        "path_on_host": str(rootfs),
+                        "path_on_host": str(rootfs.resolve()),
                     }
                 ],
                 "machine-config": {
@@ -394,13 +395,5 @@ class FireBuildManager(FireAttachManager):
         hosts = list(network.hosts())
         microvm_ip = str(hosts[1])  
 
-        # ping to verify that it is running
-        result = subprocess.run(
-            ["sudo", "curl", "-s", "--unix-socket", API_SOCKET, "http://localhost/"],
-            capture_output=True
-        )
-        if result.returncode != 0:
-            raise RuntimeError("Firecracker API socket is not responsive")
-        logger.info("Firecracker VM is running")
 
         super().__init__(microvm_ip= microvm_ip, fire_process=firecracker_process, fire_binary=firecracker_binary, key=ssh_key, checkpoint_dir=ckpt_dir, api_socket=API_SOCKET, decider=decider)
