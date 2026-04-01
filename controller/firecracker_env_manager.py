@@ -36,7 +36,6 @@ class FireAttachManager(EnvironmentManager):
         self.api_socket = api_socket
         self.tap_dev = tap_dev
         self.microvm_ip = microvm_ip
-        self.key = key
         self.fire_binary = fire_binary
         self.fire_process = fire_process
         self.checkpoint_dir = checkpoint_dir
@@ -60,6 +59,12 @@ class FireAttachManager(EnvironmentManager):
         # Attach the FileSizeCalculator to track ckpt sizes
         fsc = FileSizeCalculator(str(self.checkpoint_dir))
         self._stats.attach_size_calculator(fsc)
+
+        # Open ssh
+        self.param_key = paramiko.RSAKey.from_private_key_file(key)
+        self.ssh = paramiko.SSHClient()
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect(hostname=self.microvm_ip, username="root", pkey=self.param_key)
 
     def __pause_vm(self) -> bool:
         cmd = [
@@ -145,14 +150,15 @@ class FireAttachManager(EnvironmentManager):
             logger.warning(f"Snapshot ID {snapshot_id} not found.")
             return None, 0.0
 
+        # check if ssh is open - wouldn't be right after restore (to decrease restore time cost)
+        # ASK: should this be included in snapshot time?
+        if self.ssh is None or not self.ssh.get_transport() or not self.ssh.get_transport().is_active():
+            self.ssh.connect(hostname=self.microvm_ip, username="root", pkey=self.param_key)
+
         start = time.time()
         # issue ssh reboot
-        key = paramiko.RSAKey.from_private_key_file(self.key)
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname=self.microvm_ip, username="root", pkey=key)
-        stdin, stdout, stderr = ssh.exec_command("reboot")
-        ssh.close()
+        self.ssh.exec_command("reboot")
+        self.ssh.close()
         self.fire_process.wait()
 
         # remove old socket and start up non-config'd microvm
@@ -192,7 +198,7 @@ class FireAttachManager(EnvironmentManager):
             return None, None
 
         elapsed = time.time() - start
-
+        # don't reopen ssh to save time
         return snapshot_name, elapsed
 
 
@@ -202,12 +208,11 @@ class FireAttachManager(EnvironmentManager):
         # shutdown vm, remove socket, and remove tap
         try:
             logger.info(f"Issuing reboot to shutdown vm...")
-            key = paramiko.RSAKey.from_private_key_file(self.key)
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(hostname=self.microvm_ip, username="root", pkey=key)
-            stdin, stdout, stderr = ssh.exec_command("reboot")
-            ssh.close()
+            if self.ssh is None or not self.ssh.get_transport() or not self.ssh.get_transport().is_active():
+                self.ssh.connect(hostname=self.microvm_ip, username="root", pkey=self.param_key)
+
+            self.ssh.exec_command("reboot")
+            self.ssh.close()
             self.fire_process.wait()
             subprocess.run(["sudo", "rm", "-f", self.api_socket], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
             subprocess.run(["sudo", "ip", "link", "del", self.TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
@@ -223,20 +228,23 @@ class FireAttachManager(EnvironmentManager):
             return
 
     def _core_exec(self, command, timeout=None):
-        key = paramiko.RSAKey.from_private_key_file(self.key)
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # check if ssh is open - wouldn't be right after restore (to decrease restore time cost)
+        if self.ssh is None or not self.ssh.get_transport() or not self.ssh.get_transport().is_active():
+            self.ssh.connect(hostname=self.microvm_ip, username="root", pkey=self.param_key)
 
-        try:
-            ssh.connect(hostname=self.microvm_ip, username="root", pkey=key)
-            stdin, stdout, stderr = ssh.exec_command(command)
-            exit_status = stdout.channel.recv_exit_status()
+        # kind of hacky to allow us to run commands in the background
+        background = command.strip().endswith("&")
 
-            stdout_str = stdout.read().decode()
-            stderr_str = stderr.read().decode()
+        if background:
+            cmd = command.strip().rstrip("&").strip()
+            self.ssh.exec_command(f"nohup '{cmd}' > /dev/null 2>&1 &")
+            logger.info("Running command in the background")
+            return 0, "", ""
 
-        finally:
-            ssh.close()
+        stdin, stdout, stderr = self.ssh.exec_command(command, timeout=timeout)
+        exit_status = stdout.channel.recv_exit_status()
+        stdout_str = stdout.read().decode()
+        stderr_str = stderr.read().decode()
 
         return exit_status, stdout_str, stderr_str
 
