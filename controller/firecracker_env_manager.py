@@ -11,6 +11,7 @@ from pathlib import Path
 import json
 import paramiko # need to pip install
 import ipaddress
+from .benchmark import FileSizeCalculator
 
 logger = logging.getLogger("EnvManager.Firecracker")
 logging.getLogger("paramiko").setLevel(logging.WARNING)
@@ -40,7 +41,10 @@ class FireAttachManager(EnvironmentManager):
         self.fire_process = fire_process
         self.checkpoint_dir = checkpoint_dir
         self.vm_dir = vm_dir
-        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+        # ensure fresh dir without other snapshots
+        subprocess.run(["sudo", "rm", "-rf", self.checkpoint_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.checkpoint_dir.mkdir(parents=True)
 
         # base snapshot
         time.sleep(3) # need to ensure not snapshotting too early (fatal on restore)
@@ -52,6 +56,10 @@ class FireAttachManager(EnvironmentManager):
         self.snapshot_graph[sid] = SnapshotNode(snapshot_id=sid, parent_id=None)
         self.current_snapshot_id = sid
         self.last_snapshot_id = sid
+
+        # Attach the FileSizeCalculator to track ckpt sizes
+        fsc = FileSizeCalculator(str(self.checkpoint_dir))
+        self._stats.attach_size_calculator(fsc)
 
     def __pause_vm(self) -> bool:
         cmd = [
@@ -235,6 +243,7 @@ class FireAttachManager(EnvironmentManager):
 class FireBuildManager(FireAttachManager):
     def __init__(self,
                  fire_parent_dir: Optional[str] = ".",
+                 inject_dir: Optional[str] = None,
                  decider: Optional[Decider] = None,
                  ):
         """
@@ -242,6 +251,7 @@ class FireBuildManager(FireAttachManager):
         """
         self.fire_vm_dir = Path(fire_parent_dir) / "fire_vm"
         self.fire_ckpt_dir = Path(fire_parent_dir) / "fire_ckpts"
+        self.inject_dir = Path(inject_dir)
 
         self.ARCH = subprocess.check_output("uname -m", shell=True, text=True, stderr=subprocess.DEVNULL).strip()
         self.TAP_DEV = "tap0"
@@ -320,12 +330,20 @@ class FireBuildManager(FireAttachManager):
             else:
                 logger.info(f"Using SSH Key: {id_rsa}")
 
-            if not rootfs.exists(): # buggy if created new id_rsa but rootfs alr. exists
+            # buggy if created new id_rsa but rootfs alr. exists
+            # also will skip injecting
+            # ask: change to always make a new rootfs?
+            if not rootfs.exists():
                 squashfs = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.squashfs.upstream"
                 squashfs_root = self.fire_vm_dir / "squashfs-root"
                 subprocess.check_call(f'wget -q -O {squashfs} "https://s3.amazonaws.com/spec.ccfc.min/{latest_ubuntu_key}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.check_call(f"unsquashfs -d {squashfs_root} {squashfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                # inject ssh key
                 subprocess.check_call(f"cp {id_rsa}.pub {squashfs_root}/root/.ssh/authorized_keys", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # inject directory to pass in files
+                subprocess.check_call(f"cp -r {self.inject_dir} {squashfs_root}/root/{self.inject_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
                 subprocess.check_call(f"sudo chown -R root:root {squashfs_root}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.check_call(f"truncate -s 1G {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.check_call(f"sudo mkfs.ext4 -d {squashfs_root} -F {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -11,8 +11,6 @@ from decider import Decider
 from .benchmark import FileSizeCalculator
 
 logger = logging.getLogger("EnvManager.GVisor")
-#TODO: need to check messages for step etc, since not in a new container
-#TODO: need to figure out why networking curl isn't working
 
 class GvisorCalculator(FileSizeCalculator):
     def __init__(self, container_name: str):
