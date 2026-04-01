@@ -103,9 +103,8 @@ def create_env_manager(method: EnvType, **kwargs) -> EnvironmentManager:
         )
     elif method == "firecracker_build":
         return FireBuildManager(
-            firecracker_dir=kwargs.get("firecracker_dir", "fire_dir"),
-            ckpt_dir=kwargs.get("ckpt_dir", "fire_ckpts")
-
+            fire_parent_dir=kwargs.get("firecracker_dir", "."), # create artifact and ckpt directories here
+            decider=kwargs.get("decider")
         )
     else:
         raise ValueError(f"Unknown method: {method}")

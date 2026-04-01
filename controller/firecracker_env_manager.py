@@ -13,15 +13,18 @@ import paramiko # need to pip install
 import ipaddress
 
 logger = logging.getLogger("EnvManager.Firecracker")
+logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 class FireAttachManager(EnvironmentManager):
     def __init__(self,
                 microvm_ip,
+                tap_dev,
                 fire_process,
                 fire_binary,
                 key,
+                checkpoint_dir,
+                vm_dir,
                 api_socket: Optional[str] = "/tmp/firecracker.socket",
-                checkpoint_dir: Optional[str] = "fire_ckpts",
                 decider: Optional[Decider] = None,
                 ):
         """
@@ -30,14 +33,14 @@ class FireAttachManager(EnvironmentManager):
         super().__init__(backend_name="Firecracker", decider=decider)
 
         self.api_socket = api_socket
+        self.tap_dev = tap_dev
         self.microvm_ip = microvm_ip
         self.key = key
         self.fire_binary = fire_binary
         self.fire_process = fire_process
-
-        self.checkpoint_dir = Path(checkpoint_dir)
+        self.checkpoint_dir = checkpoint_dir
+        self.vm_dir = vm_dir
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        
 
         # base snapshot
         time.sleep(3) # need to ensure not snapshotting too early (fatal on restore)
@@ -142,7 +145,6 @@ class FireAttachManager(EnvironmentManager):
         ssh.connect(hostname=self.microvm_ip, username="root", pkey=key)
         stdin, stdout, stderr = ssh.exec_command("reboot")
         ssh.close()
-        # close firecracker process
         self.fire_process.wait()
 
         # remove old socket and start up non-config'd microvm
@@ -178,23 +180,41 @@ class FireAttachManager(EnvironmentManager):
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.stdout.strip() == ("400"):
-            logger.error(f"Failed to load snapshot")
+            logger.error(f"Failed to restore snapshot")
             return None, None
 
         elapsed = time.time() - start
 
         return snapshot_name, elapsed
 
+
     def _core_cleanup(self):
         logger.info(f"Cleaning up Firecracker microVM...")
-        # TODO: How to terminate and cleanup VMs?
 
+        # shutdown vm, remove socket, and remove tap
+        try:
+            logger.info(f"Issuing reboot to shutdown vm...")
+            key = paramiko.RSAKey.from_private_key_file(self.key)
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(hostname=self.microvm_ip, username="root", pkey=key)
+            stdin, stdout, stderr = ssh.exec_command("reboot")
+            ssh.close()
+            self.fire_process.wait()
+            subprocess.run(["sudo", "rm", "-f", self.api_socket], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            subprocess.run(["sudo", "ip", "link", "del", self.TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+            # clean up checkpoint directory and vm directory
+            logger.info(f"Cleaning up vm and ckpt directories...")
+            subprocess.run(["sudo", "rm", "-rf", self.checkpoint_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            subprocess.run(["sudo", "rm", "-rf", self.vm_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            # ask: if running multiple times, would be nice not to delete linux binary, firecracker binary, etc. each time, but assume cleanup should remove everything created including these?
+
+        except Exception as e:
+            logger.error(f"Rirecracker cleanup failed: {e}")
+            return
 
     def _core_exec(self, command, timeout=None):
-        # TODO: Not sure how to do exec in the VM?
-        #   `ssh` with the command?
-        #   If it is hard to do so, just make sure the VM can run the default FastAPi workload is enough for MicroBenchmark
-
         key = paramiko.RSAKey.from_private_key_file(self.key)
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -212,13 +232,42 @@ class FireAttachManager(EnvironmentManager):
 
         return exit_status, stdout_str, stderr_str
 
-    @staticmethod
-    def _start_full_microvm(firecracker_dir, ARCH, TAP_DEV, TAP_IP, MASK, FC_MAC, API_SOCKET):
+class FireBuildManager(FireAttachManager):
+    def __init__(self,
+                 fire_parent_dir: Optional[str] = ".",
+                 decider: Optional[Decider] = None,
+                 ):
+        """
+        Initialize a Firecracker microVM.
+        """
+        self.fire_vm_dir = Path(fire_parent_dir) / "fire_vm"
+        self.fire_ckpt_dir = Path(fire_parent_dir) / "fire_ckpts"
+
+        self.ARCH = subprocess.check_output("uname -m", shell=True, text=True, stderr=subprocess.DEVNULL).strip()
+        self.TAP_DEV = "tap0"
+        self.TAP_IP = "172.16.0.1"
+        self.MASK = "/30"
+        self.FC_MAC = "06:00:AC:10:00:02" # corresponds to TAP_IP and MASK
+        self.API_SOCKET = "/tmp/firecracker.socket"
+
+        logger.info("Creating Firecracker microVM...")
+        ssh_key, firecracker_process, firecracker_binary = self._start_full_microvm()
+
+        network = ipaddress.ip_network(f"{self.TAP_IP}{self.MASK}", strict=False)
+        hosts = list(network.hosts())
+        microvm_ip = str(hosts[1])
+
+        super().__init__(microvm_ip= microvm_ip, tap_dev=self.TAP_DEV, fire_process=firecracker_process,
+                        fire_binary=firecracker_binary, key=ssh_key,
+                        checkpoint_dir=self.fire_ckpt_dir, vm_dir=self.fire_vm_dir,
+                        api_socket=self.API_SOCKET, decider=decider)
+
+
+    def _start_full_microvm(self):
         """
         Heavily based off of the "Getting Started" guide: https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md
         """
         logger.info("Setting up files...")
-        firecracker_dir = Path(firecracker_dir)
         try:
             release_url = "https://github.com/firecracker-microvm/firecracker/releases"
             latest_version = subprocess.check_output(
@@ -229,15 +278,15 @@ class FireAttachManager(EnvironmentManager):
 
             # 1) get linux kernel binary
             latest_kernel_key = subprocess.check_output(
-                f'curl -s "http://spec.ccfc.min.s3.amazonaws.com/?prefix=firecracker-ci/{CI_VERSION}/{ARCH}/vmlinux-&list-type=2" '
-                f'| grep -oP "(?<=<Key>)(firecracker-ci/{CI_VERSION}/{ARCH}/vmlinux-[0-9]+\\.[0-9]+\\.[0-9]{{1,3}})(?=</Key>)" '
+                f'curl -s "http://spec.ccfc.min.s3.amazonaws.com/?prefix=firecracker-ci/{CI_VERSION}/{self.ARCH}/vmlinux-&list-type=2" '
+                f'| grep -oP "(?<=<Key>)(firecracker-ci/{CI_VERSION}/{self.ARCH}/vmlinux-[0-9]+\\.[0-9]+\\.[0-9]{{1,3}})(?=</Key>)" '
                 f'| sort -V | tail -1',
                 shell=True, text=True, stderr=subprocess.DEVNULL
             ).strip()
 
-            kernel = firecracker_dir / latest_kernel_key.split("/")[-1]
+            kernel = self.fire_vm_dir / latest_kernel_key.split("/")[-1]
             if not kernel.exists():
-                firecracker_dir.mkdir(parents=True, exist_ok=True)
+                self.fire_vm_dir.mkdir(parents=True, exist_ok=True)
                 subprocess.check_call(f'wget -q "https://s3.amazonaws.com/spec.ccfc.min/{latest_kernel_key}" -O {kernel}', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if kernel.exists():
                     logger.info(f"Kernel file set up: {kernel}")
@@ -248,8 +297,8 @@ class FireAttachManager(EnvironmentManager):
 
             # 2) get rootfs
             latest_ubuntu_key = subprocess.check_output(
-                f'curl -s "http://spec.ccfc.min.s3.amazonaws.com/?prefix=firecracker-ci/{CI_VERSION}/{ARCH}/ubuntu-&list-type=2" '
-                f'| grep -oP "(?<=<Key>)(firecracker-ci/{CI_VERSION}/{ARCH}/ubuntu-[0-9]+\\.[0-9]+\\.squashfs)(?=</Key>)" '
+                f'curl -s "http://spec.ccfc.min.s3.amazonaws.com/?prefix=firecracker-ci/{CI_VERSION}/{self.ARCH}/ubuntu-&list-type=2" '
+                f'| grep -oP "(?<=<Key>)(firecracker-ci/{CI_VERSION}/{self.ARCH}/ubuntu-[0-9]+\\.[0-9]+\\.squashfs)(?=</Key>)" '
                 f'| sort -V | tail -1',
                 shell=True, text=True, stderr=subprocess.DEVNULL
             ).strip()
@@ -259,8 +308,8 @@ class FireAttachManager(EnvironmentManager):
                 shell=True, text=True, stderr=subprocess.DEVNULL
             ).strip()
 
-            rootfs = firecracker_dir / f"ubuntu-{ubuntu_version}.ext4"
-            id_rsa = firecracker_dir / f"ubuntu-{ubuntu_version}.id_rsa"
+            rootfs = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.ext4"
+            id_rsa = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.id_rsa"
 
             if not id_rsa.exists():
                 subprocess.check_call(f"ssh-keygen -t rsa -b 4096 -m PEM -f {id_rsa} -N ''", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -272,8 +321,8 @@ class FireAttachManager(EnvironmentManager):
                 logger.info(f"Using SSH Key: {id_rsa}")
 
             if not rootfs.exists(): # buggy if created new id_rsa but rootfs alr. exists
-                squashfs = firecracker_dir / f"ubuntu-{ubuntu_version}.squashfs.upstream"
-                squashfs_root = firecracker_dir / "squashfs-root"
+                squashfs = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.squashfs.upstream"
+                squashfs_root = self.fire_vm_dir / "squashfs-root"
                 subprocess.check_call(f'wget -q -O {squashfs} "https://s3.amazonaws.com/spec.ccfc.min/{latest_ubuntu_key}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.check_call(f"unsquashfs -d {squashfs_root} {squashfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.check_call(f"cp {id_rsa}.pub {squashfs_root}/root/.ssh/authorized_keys", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -289,14 +338,14 @@ class FireAttachManager(EnvironmentManager):
                 raise RuntimeError(f"{rootfs} is not a valid ext4 fs")
 
             # 3) get firecracker binary
-            firecracker_binary = firecracker_dir / "firecracker"
+            firecracker_binary = self.fire_vm_dir / "firecracker"
             if not firecracker_binary.exists():
                 subprocess.check_call(
-                    f'curl -sL {release_url}/download/{latest_version}/firecracker-{latest_version}-{ARCH}.tgz | tar -xz',
+                    f'curl -sL {release_url}/download/{latest_version}/firecracker-{latest_version}-{self.ARCH}.tgz | tar -xz',
                     shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    cwd=firecracker_dir
+                    cwd=self.fire_vm_dir
                 )
-                src = firecracker_dir / f'release-{latest_version}-{ARCH}/firecracker-{latest_version}-{ARCH}'
+                src = self.fire_vm_dir / f'release-{latest_version}-{self.ARCH}/firecracker-{latest_version}-{self.ARCH}'
                 src.rename(firecracker_binary)
                 if firecracker_binary.exists():
                     logger.info(f"Firecracker binary set up: {firecracker_binary}")
@@ -307,20 +356,20 @@ class FireAttachManager(EnvironmentManager):
 
 
             # 4) make TAP device for networking
-            subprocess.run(["sudo", "ip", "link", "del", TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.check_call(["sudo", "ip", "tuntap", "add", "dev", TAP_DEV, "mode", "tap"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.check_call(["sudo", "ip", "addr", "add", f"{TAP_IP}{MASK}", "dev", TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.check_call(["sudo", "ip", "link", "set", "dev", TAP_DEV, "up"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            logger.info(f"TAP device {TAP_DEV} on {TAP_IP}{MASK} set up")
+            subprocess.run(["sudo", "ip", "link", "del", self.TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "tuntap", "add", "dev", self.TAP_DEV, "mode", "tap"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "addr", "add", f"{self.TAP_IP}{self.MASK}", "dev", self.TAP_DEV], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["sudo", "ip", "link", "set", "dev", self.TAP_DEV, "up"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            logger.info(f"TAP device {self.TAP_DEV} on {self.TAP_IP}{self.MASK} set up")
 
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to set up necessary files for firecracker")
 
         # Write config file
-        config_path = firecracker_dir / "firecracker-config.json"
+        config_path = self.fire_vm_dir / "firecracker-config.json"
         if not config_path.exists():
             boot_args = "console=ttyS0 reboot=k panic=5 pci=off"
-            if ARCH == "aarch64":
+            if self.ARCH == "aarch64":
                 boot_args = f"keep_bootcon {boot_args}"
 
             config = {
@@ -343,8 +392,8 @@ class FireAttachManager(EnvironmentManager):
                 "network-interfaces": [
                     {
                         "iface_id": "net1",
-                        "guest_mac": FC_MAC,
-                        "host_dev_name": TAP_DEV
+                        "guest_mac": self.FC_MAC,
+                        "host_dev_name": self.TAP_DEV
                     }
                 ],
             }
@@ -360,40 +409,15 @@ class FireAttachManager(EnvironmentManager):
 
         # Run firecracker
         try:
-            subprocess.run(["sudo", "rm", "-f", API_SOCKET], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["sudo", "rm", "-f", self.API_SOCKET], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             firecracker_process = subprocess.Popen(
-                ["sudo", str(firecracker_binary), "--api-sock", API_SOCKET, "--config-file", str(config_path)],
+                ["sudo", str(firecracker_binary), "--api-sock", self.API_SOCKET, "--config-file", str(config_path)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 stdin=subprocess.DEVNULL
             )
             logger.info(f"Started firecracker process and microVM")
         except Exception:
-            raise RuntimeError(f"Failed to start firecracker process on socket {API_SOCKET}")
+            raise RuntimeError(f"Failed to start firecracker process on socket {self.API_SOCKET}")
 
         return id_rsa, firecracker_process, firecracker_binary
-
-class FireBuildManager(FireAttachManager):
-    def __init__(self,
-                 firecracker_dir: str = ".",
-                 ckpt_dir: Optional[str] = "./fire_ckpts",
-                 decider: Optional[Decider] = None,
-                 ):
-        """
-        Initialize a Firecracker microVM.
-        """
-        ARCH = subprocess.check_output("uname -m", shell=True, text=True, stderr=subprocess.DEVNULL).strip()
-        TAP_DEV = "tap0"
-        TAP_IP = "172.16.0.1"
-        MASK = "/30"
-        FC_MAC = "06:00:AC:10:00:02" # corresponds to TAP_IP and MASK
-        API_SOCKET = "/tmp/firecracker.socket"
-        logger.info("Creating Firecracker microVM...")
-        ssh_key, firecracker_process, firecracker_binary = FireAttachManager._start_full_microvm(firecracker_dir, ARCH=ARCH, TAP_DEV=TAP_DEV, TAP_IP=TAP_IP, MASK=MASK, FC_MAC=FC_MAC, API_SOCKET=API_SOCKET)
-
-        network = ipaddress.ip_network(f"{TAP_IP}{MASK}", strict=False)
-        hosts = list(network.hosts())
-        microvm_ip = str(hosts[1])  
-
-
-        super().__init__(microvm_ip= microvm_ip, fire_process=firecracker_process, fire_binary=firecracker_binary, key=ssh_key, checkpoint_dir=ckpt_dir, api_socket=API_SOCKET, decider=decider)
