@@ -49,7 +49,7 @@ They follow the naming convention `{Backend}{Action}Manager`, where:
   - `Hybrid` for Podman + CRIU (captures both file and process states) 
   - `CheckpointLite` for Checkpoint-lite, a lightweight checkpointing tool (captures both file and process states)
   - `gVisor` for Docker in gVisor (captures both file and process states)
-  - `Firecracker` for Firecracker microVM (captures both file and process states)
+  - `Firecracker` for Firecracker microVM (captures process states)
 - **{Action}** Lifecycle mode:
   - `Build` starts a fresh instance (for testing/dev)
   - `Attach` connects to an existing container or process
