@@ -224,7 +224,7 @@ class FireAttachManager(EnvironmentManager):
             # ask: if running multiple times, would be nice not to delete linux binary, firecracker binary, etc. each time, but assume cleanup should remove everything created including these?
 
         except Exception as e:
-            logger.error(f"Rirecracker cleanup failed: {e}")
+            logger.error(f"Firecracker cleanup failed: {e}")
             return
 
     def _core_exec(self, command, timeout=None):
@@ -237,7 +237,7 @@ class FireAttachManager(EnvironmentManager):
 
         if background:
             cmd = command.strip().rstrip("&").strip()
-            self.ssh.exec_command(f"nohup '{cmd}' > /dev/null 2>&1 &")
+            self.ssh.exec_command(f"bash -c 'nohup {cmd} > /dev/null 2>&1 & disown'")
             logger.info("Running command in the background")
             return 0, "", ""
 
@@ -338,29 +338,25 @@ class FireBuildManager(FireAttachManager):
             else:
                 logger.info(f"Using SSH Key: {id_rsa}")
 
-            # buggy if created new id_rsa but rootfs alr. exists
-            # also will skip injecting
-            # ask: change to always make a new rootfs?
-            if not rootfs.exists():
-                squashfs = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.squashfs.upstream"
-                squashfs_root = self.fire_vm_dir / "squashfs-root"
-                subprocess.check_call(f'wget -q -O {squashfs} "https://s3.amazonaws.com/spec.ccfc.min/{latest_ubuntu_key}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.check_call(f"unsquashfs -d {squashfs_root} {squashfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            squashfs = self.fire_vm_dir / f"ubuntu-{ubuntu_version}.squashfs.upstream"
+            squashfs_root = self.fire_vm_dir / "squashfs-root"
+            
+            # make fresh every time
+            subprocess.run(f"sudo rm -rf {squashfs} {squashfs_root} {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-                # inject ssh key
-                subprocess.check_call(f"cp {id_rsa}.pub {squashfs_root}/root/.ssh/authorized_keys", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                # inject directory to pass in files
-                subprocess.check_call(f"cp -r {self.inject_dir} {squashfs_root}/root/{self.inject_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-                subprocess.check_call(f"sudo chown -R root:root {squashfs_root}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.check_call(f"truncate -s 1G {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.check_call(f"sudo mkfs.ext4 -d {squashfs_root} -F {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                logger.info(f"Rootfs set up: {rootfs}")
+            subprocess.check_call(f'wget -q -O {squashfs} "https://s3.amazonaws.com/spec.ccfc.min/{latest_ubuntu_key}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(f"unsquashfs -d {squashfs_root} {squashfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # inject ssh key
+            subprocess.check_call(f"cp {id_rsa}.pub {squashfs_root}/root/.ssh/authorized_keys", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # inject directory to pass in files
+            subprocess.check_call(f"cp -r {self.inject_dir} {squashfs_root}/root/{self.inject_dir}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(f"sudo chown -R root:root {squashfs_root}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(f"truncate -s 1G {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(f"sudo mkfs.ext4 -d {squashfs_root} -F {rootfs}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            logger.info(f"Rootfs set up: {rootfs}")
 
             e2fsck = subprocess.run(f"e2fsck -fn {rootfs}", shell=True, capture_output=True)
-            if e2fsck.returncode == 0:
-                logger.info(f"Using rootfs {rootfs}")
-            else:
+            if e2fsck.returncode != 0:
                 raise RuntimeError(f"{rootfs} is not a valid ext4 fs")
 
             # 3) get firecracker binary
