@@ -130,8 +130,8 @@ pip install -r requirements.txt
 
 ### gVisor Method (with Docker)
 - Docker must be installed and running.
-- Docker must have the runsc runtime installed (see [gvisor guide](https://gvisor.dev/docs/user_guide/quick_start/docker/)).
-- Docker must have experimental features enabled.
+- Docker must use the runsc runtime (see [gVisor installation guide](https://gvisor.dev/docs/user_guide/install/) and then [configuring Docker](https://gvisor.dev/docs/user_guide/quick_start/docker/)).
+- Docker must have experimental features enabled (add `"experimental": true` to `/etc/docker/daemon.json`, and then run `sudo systemctl restart docker`)
 - Make sure your user has permission to run Docker commands.
 
 #### gVisor Limitation: networking is not compatible with checkpoint/restore
