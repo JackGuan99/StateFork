@@ -57,3 +57,8 @@ python -m pytest tests/test_rpc.py -q
 ```
 CRIU / the Checkpoint-lite binary can't run without a Linux+CRIU host; the tests
 drive the RPC route functions with `create_env_manager` faked.
+
+## Maintenance (do this every time)
+On any change to the checkpoint-lite integration, update `INTEGRATION_REPORT.md`
+in this repo **and** its counterpart in the harbor repo — keep both reports in
+sync.
