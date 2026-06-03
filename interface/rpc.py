@@ -2,13 +2,12 @@
 
 A thin HTTP control plane over the :class:`controller.EnvironmentManager`
 backends (in particular the Checkpoint-lite backend), so remote clients can
-drive snapshot / restore / fork / exec / cleanup without a local Python
-import or a co-located shell.
+drive snapshot / restore / fork / exec / cleanup / file-transfer without a local
+Python import or a co-located shell.
 
 This is the "RPC Interface" referenced in ``interface/README.md``. It wraps
-:func:`controller.create_env_manager`; every backend that the factory knows
-about is therefore reachable over HTTP, but the default ``method`` is
-``ckpt_build`` (Checkpoint-lite).
+:func:`controller.create_env_manager`; the default ``method`` is ``ckpt_build``
+(Checkpoint-lite).
 
 Run it (from the repository root, alongside the ``checkpoint-lite`` binary)::
 
@@ -19,13 +18,12 @@ Notes / assumptions
 -------------------
 * Sessions are held in an in-memory registry, so the server MUST run with a
   single worker process (the default of :func:`uvicorn.run` below).
-* Operations on a single session are serialized with a per-session lock;
-  interleaving snapshot/restore/exec on the same session is unsafe.
-* File transfer (:func:`/upload` / :func:`/download`) is implemented through
-  the backend's ``exec`` primitive (base64, chunked, ``tar`` for directories)
-  so it is backend-agnostic. It assumes the backend executes commands through
-  a POSIX shell (true for the container backends; Checkpoint-lite runs on
-  Linux), and is intended for modest payloads rather than bulk data.
+* Operations on a single session are serialized with a per-session lock.
+* File transfer (:func:`/upload` / :func:`/download`) writes/reads the
+  session's OverlayFS ``work_dir`` directly on this host (filesystem-layer,
+  like ``docker cp``) — the server is co-located with the session. The
+  in-sandbox path is mapped to ``<work_dir>/<path>``, so it assumes a
+  build/rootfs session whose ``work_dir`` is the sandbox root.
 """
 
 from __future__ import annotations
@@ -33,10 +31,11 @@ from __future__ import annotations
 import argparse
 import base64
 import logging
-import posixpath
-import shlex
+import os
+import tarfile
 import threading
 import uuid
+from io import BytesIO
 from typing import Optional
 
 import uvicorn
@@ -48,17 +47,14 @@ from controller import EnvironmentManager, create_env_manager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("interface.rpc")
 
-# Largest base64 payload pushed through a single exec command. Kept well under
-# typical ARG_MAX so chunked uploads stay within shell command-length limits.
-_UPLOAD_CHUNK = 60_000
-
 
 # --------------------------------------------------------------------------- #
 # Session registry
 # --------------------------------------------------------------------------- #
 class _Session:
-    def __init__(self, manager: EnvironmentManager):
+    def __init__(self, manager: EnvironmentManager, work_dir: Optional[str] = None):
         self.manager = manager
+        self.work_dir = work_dir
         self.lock = threading.Lock()
 
 
@@ -67,10 +63,10 @@ class _Registry:
         self._sessions: dict[str, _Session] = {}
         self._guard = threading.Lock()
 
-    def add(self, manager: EnvironmentManager) -> str:
+    def add(self, manager: EnvironmentManager, work_dir: Optional[str] = None) -> str:
         sid = uuid.uuid4().hex[:12]
         with self._guard:
-            self._sessions[sid] = _Session(manager)
+            self._sessions[sid] = _Session(manager, work_dir)
         return sid
 
     def get(self, sid: str) -> _Session:
@@ -167,51 +163,25 @@ class DownloadResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# Exec-based file transfer helpers (backend-agnostic)
+# Direct work_dir file transfer (filesystem-layer, like `docker cp`)
 # --------------------------------------------------------------------------- #
-def _exec(manager: EnvironmentManager, command: str, timeout: float | None = None):
-    rc, out, err = manager.exec_command(command, timeout=timeout)
-    if rc != 0:
+def _require_work_dir(session: _Session) -> str:
+    if not session.work_dir:
         raise HTTPException(
-            status_code=500,
-            detail=f"exec failed (rc={rc}) for {command!r}: {err or out}",
+            status_code=400,
+            detail="session has no work_dir; filesystem transfer unavailable "
+            "(use a build/rootfs session).",
         )
-    return out
+    return session.work_dir
 
 
-def _write_file_via_exec(
-    manager: EnvironmentManager, path: str, data: bytes, untar: bool
-) -> None:
-    target = f"/tmp/_sf_upload_{uuid.uuid4().hex}.tar.gz" if untar else path
-
-    parent = posixpath.dirname(target)
-    if parent:
-        _exec(manager, f"mkdir -p {shlex.quote(parent)}")
-
-    # Truncate, then append base64-decoded chunks. The base64 alphabet has no
-    # single quotes, so single-quoting each chunk is safe.
-    _exec(manager, f": > {shlex.quote(target)}")
-    b64 = base64.b64encode(data).decode("ascii")
-    for i in range(0, len(b64), _UPLOAD_CHUNK):
-        chunk = b64[i : i + _UPLOAD_CHUNK]
-        _exec(manager, f"printf '%s' '{chunk}' | base64 -d >> {shlex.quote(target)}")
-
-    if untar:
-        _exec(manager, f"mkdir -p {shlex.quote(path)}")
-        _exec(
-            manager,
-            f"tar xzf {shlex.quote(target)} -C {shlex.quote(path)} "
-            f"&& rm -f {shlex.quote(target)}",
-        )
-
-
-def _read_file_via_exec(manager: EnvironmentManager, path: str, is_dir: bool) -> bytes:
-    if is_dir:
-        out = _exec(manager, f"tar czf - -C {shlex.quote(path)} . | base64")
-    else:
-        out = _exec(manager, f"base64 {shlex.quote(path)}")
-    # b64decode with validate=False discards the newlines `base64` inserts.
-    return base64.b64decode(out)
+def _host_path(work_dir: str, path: str) -> str:
+    """Map an in-sandbox path to its host path under work_dir, guarding ``..``."""
+    base = os.path.realpath(work_dir)
+    full = os.path.realpath(os.path.join(base, path.lstrip("/")))
+    if full != base and not full.startswith(base + os.sep):
+        raise HTTPException(status_code=400, detail=f"path escapes work_dir: {path}")
+    return full
 
 
 # --------------------------------------------------------------------------- #
@@ -237,13 +207,14 @@ def create_session(req: CreateSessionRequest) -> CreateSessionResponse:
         logger.exception("Failed to create session")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    sid = registry.add(manager)
+    work_dir = getattr(manager, "work_dir", None)
+    sid = registry.add(manager, work_dir)
     logger.info("Created session %s (%s)", sid, manager.backend)
     return CreateSessionResponse(
         session=sid,
         backend=manager.backend,
         current_snapshot=manager.current_snapshot,
-        work_dir=getattr(manager, "work_dir", None),
+        work_dir=work_dir,
     )
 
 
@@ -273,9 +244,7 @@ def restore(sid: str, req: RestoreRequest) -> OkResponse:
 def fork(sid: str, req: ForkRequest) -> ForkResponse:
     """Create an environment from a snapshot (``create_env_from_snapshot``).
 
-    Branching semantics are backend-defined: container backends spin up a new
-    container, while the Checkpoint-lite backend restores the snapshot into the
-    session.
+    Branching semantics are backend-defined.
     """
     session = registry.get(sid)
     with session.lock:
@@ -312,20 +281,36 @@ def snapshot_tree(sid: str) -> TreeResponse:
 @app.post("/sessions/{sid}/upload", response_model=OkResponse)
 def upload(sid: str, req: UploadRequest) -> OkResponse:
     session = registry.get(sid)
+    host_path = _host_path(_require_work_dir(session), req.path)
     try:
         data = base64.b64decode(req.content_b64)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=f"invalid base64: {exc}") from exc
     with session.lock:
-        _write_file_via_exec(session.manager, req.path, data, req.untar)
+        if req.untar:
+            os.makedirs(host_path, exist_ok=True)
+            with tarfile.open(fileobj=BytesIO(data), mode="r:gz") as tar:
+                tar.extractall(path=host_path, filter="data")
+        else:
+            os.makedirs(os.path.dirname(host_path) or "/", exist_ok=True)
+            with open(host_path, "wb") as f:
+                f.write(data)
     return OkResponse(ok=True)
 
 
 @app.post("/sessions/{sid}/download", response_model=DownloadResponse)
 def download(sid: str, req: DownloadRequest) -> DownloadResponse:
     session = registry.get(sid)
+    host_path = _host_path(_require_work_dir(session), req.path)
     with session.lock:
-        data = _read_file_via_exec(session.manager, req.path, req.is_dir)
+        if req.is_dir:
+            buffer = BytesIO()
+            with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+                tar.add(host_path, arcname=".")
+            data = buffer.getvalue()
+        else:
+            with open(host_path, "rb") as f:
+                data = f.read()
     return DownloadResponse(content_b64=base64.b64encode(data).decode("ascii"))
 
 

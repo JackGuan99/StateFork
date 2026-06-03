@@ -72,6 +72,7 @@ The server keeps sessions in memory, so run it with a **single worker**.
 | `POST /sessions/{sid}/download` | `{path, is_dir?}` | Read a file (or `.tar.gz` of a directory) out of the session |
 | `DELETE /sessions/{sid}` | — | Clean up and drop the session |
 
-File transfer goes through the backend's `exec` primitive (base64, chunked,
-`tar` for directories), so it is backend-agnostic but intended for modest
-payloads rather than bulk data.
+File transfer (`/upload` / `/download`) writes/reads the session's OverlayFS
+`work_dir` directly on the server (filesystem-layer, like `docker cp`): fast and
+binary-safe. It maps the in-sandbox path to `<work_dir>/<path>`, so it assumes a
+build/rootfs session whose `work_dir` is the sandbox root.

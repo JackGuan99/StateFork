@@ -16,16 +16,18 @@ additive.
 ## Files
 
 ### New
-- **`interface/rpc.py`** (356 lines) — FastAPI control server.
+- **`interface/rpc.py`** (258 lines) — FastAPI control server.
   - **11 endpoints:** `GET /health`; `POST /sessions`;
     `POST /sessions/{id}/snapshot`; `.../restore`; `.../fork`; `.../exec`;
     `.../upload`; `.../download`; `GET /sessions/{id}/snapshots`;
     `.../tree`; `DELETE /sessions/{id}`.
   - **14 Pydantic models** (request/response).
   - `_Session` / `_Registry` (multi-session registry + per-session lock);
-    `_exec` / `_write_file_via_exec` / `_read_file_via_exec` (exec+base64/tar
-    file transfer); `main()` entrypoint (`python -m interface.rpc`).
-- **`tests/test_rpc.py`** (195 lines) — 13 tests (`create_env_manager` faked).
+    `_require_work_dir` / `_host_path` — `/upload` & `/download` write/read the
+    session's OverlayFS `work_dir` **directly** (filesystem-layer, like
+    `docker cp`; no exec/base64 fallback); `main()` entrypoint
+    (`python -m interface.rpc`).
+- **`tests/test_rpc.py`** (160 lines) — 13 tests (`create_env_manager` faked; work_dir transfer against a temp dir).
 - **`conftest.py`** (10 lines) — puts the repo root on `sys.path` for pytest.
 - **`CLAUDE.md`** (agent guide).
 
