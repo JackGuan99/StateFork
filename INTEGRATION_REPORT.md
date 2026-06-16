@@ -81,6 +81,9 @@ file transfer. No server, no in-process import. See harbor's
   and `snapshot`→mutate→`restore` with the file **reverting** (CRIU + OverlayFS),
   then `cleanup`. Init-session `create`/`snapshot`/`restore`/`cleanup` are also
   rc=0; waypoint runs a shell only for shell-enabled (`build`) sessions.
+- harbor's real `CheckpointLiteEnvironment` class was also driven against this CLI
+  end-to-end (start → exec as root and as a non-root `agent` via `runuser` →
+  exit-code recovery → work_dir upload/download → snapshot/restore revert → stop).
 - **Deployment note:** the repo root must resolve **both** `./checkpoint-lite`
   (the `waypoint` binary) **and** `./bash_init` (waypoint execs
   `DefaultBashInitSrc="./bash_init"` relative to cwd for shell sessions).
