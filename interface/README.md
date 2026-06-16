@@ -40,13 +40,36 @@ See the sample run screenshot below.
 ![Sample Run Screenshot](../docs/sample_run.png)
 
 
-## 🚀 RPC Interface
+## 🧩 One-shot Checkpoint-lite CLI (`interface/cli.py`)
+
+A small, scriptable front-end to the `checkpoint-lite` / `waypoint` binary, meant
+to be driven **per-operation via `subprocess`** — the way
+[harbor](https://github.com/harbor-framework/harbor)'s `checkpoint-lite`
+environment uses it (like `docker.py` shells out to `docker compose`). Run from
+the repo root, where the `checkpoint-lite` binary/symlink lives:
+
+```bash
+(sudo) python3 -m interface.cli create  /path/to/context [--build|--no-build]  # prints sid,workdir[,pid]
+(sudo) python3 -m interface.cli exec     <session> "echo hi"
+(sudo) python3 -m interface.cli snapshot <session>                              # prints a checkpoint id
+(sudo) python3 -m interface.cli restore  <session> <checkpoint-id>
+(sudo) python3 -m interface.cli cleanup  <session> [--force]
+```
+
+It maps 1:1 onto the binary (`init`/`build`, `exec`, `create`, `restore`,
+`cleanup`) and issues `./checkpoint-lite` **directly** — it does not import the
+`controller` managers (waypoint already persists session state on disk, so each
+call is stateless). `snapshot` passes the `-2` PID sentinel so waypoint
+checkpoints the managed shell session when one exists. Override the binary path
+with `$CHECKPOINT_LITE_BIN`. **This is harbor's integration path.**
+
+## 🚀 RPC Interface (optional)
 
 An HTTP control plane (`interface/rpc.py`) exposes the `EnvironmentManager`
 backends so remote clients can drive snapshot/restore/fork/exec/cleanup without
-a local Python import or a co-located shell. This is what the
-[harbor](https://github.com/harbor-framework/harbor) `checkpoint-lite`
-environment talks to.
+a local Python import or a co-located shell. It was the earlier harbor transport
+and remains available as a standalone remote control plane, but the current
+harbor integration uses the **CLI above**, not this server.
 
 ### Launch the server
 ```bash
