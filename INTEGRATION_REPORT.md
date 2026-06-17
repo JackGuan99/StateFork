@@ -84,6 +84,11 @@ file transfer. No server, no in-process import. See harbor's
 - harbor's real `CheckpointLiteEnvironment` class was also driven against this CLI
   end-to-end (start → exec as root and as a non-root `agent` via `runuser` →
   exit-code recovery → work_dir upload/download → snapshot/restore revert → stop).
+- Full `harbor job start` agent trials over this CLI scored reward **1.0**: the
+  `oracle` agent and a real **LLM agent** (host-side ReAct loop via `exec`) both
+  solved a task in the checkpoint-lite container. Note: `tmux`/PTY agents (e.g.
+  `terminus`) fail — the waypoint container has no `/dev/pts` (managed shell runs
+  over the `bash_init` socket); use `exec`-based agents.
 - **Deployment note:** the repo root must resolve **both** `./checkpoint-lite`
   (the `waypoint` binary) **and** `./bash_init` (waypoint execs
   `DefaultBashInitSrc="./bash_init"` relative to cwd for shell sessions).
