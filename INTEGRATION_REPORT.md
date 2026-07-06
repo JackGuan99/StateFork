@@ -100,7 +100,11 @@ file transfer. No server, no in-process import. See harbor's
   `tests/test.sh` (pytest) → **TB's own verifier wrote `reward.txt = 1`**; then
   CRIU-snapshotted the solved state and cleaned up. Dataset survey: **89/89**
   terminal-bench-2 tasks ship an `environment/Dockerfile` (no prebuilt-image-only
-  tasks in this set).
+  tasks in this set). The same task then passed **conducted by harbor itself**
+  (`harbor job start --agent oracle`, reward 1.0) after harbor's env learned to
+  honor the image `WORKDIR` as exec's default cwd (waypoint's shell starts at
+  `/`, unlike `docker exec` which inherits the image WORKDIR — harbor-side fix,
+  no CLI change).
 - **Deployment note:** the repo root must resolve **both** `./checkpoint-lite`
   (the `waypoint` binary) **and** `./bash_init` (waypoint execs
   `DefaultBashInitSrc="./bash_init"` relative to cwd for shell sessions).
