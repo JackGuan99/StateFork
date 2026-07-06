@@ -93,6 +93,14 @@ file transfer. No server, no in-process import. See harbor's
   multiplexes all `exec`s through one persistent managed-bash PTY — `mini-swe-agent`
   solved the task but its trial then hit a verifier `exec` timeout. Prefer
   `exec`-based agents that run clean one-shot commands.
+- **Real Terminal-Bench task via this CLI directly** (no harbor machinery):
+  `terminal-bench-2`'s `count-dataset-tokens` (medium) — built its real
+  Dockerfile, ran its real `solve.sh` (pip-installed 36 pkgs, downloaded a
+  HuggingFace dataset — network+DNS work inside the waypoint chroot) and its real
+  `tests/test.sh` (pytest) → **TB's own verifier wrote `reward.txt = 1`**; then
+  CRIU-snapshotted the solved state and cleaned up. Dataset survey: **89/89**
+  terminal-bench-2 tasks ship an `environment/Dockerfile` (no prebuilt-image-only
+  tasks in this set).
 - **Deployment note:** the repo root must resolve **both** `./checkpoint-lite`
   (the `waypoint` binary) **and** `./bash_init` (waypoint execs
   `DefaultBashInitSrc="./bash_init"` relative to cwd for shell sessions).
